@@ -54,5 +54,6 @@ app.*.map.json
 # API Keys and Secrets
 **/secrets/
 **/config/secrets.json
+**/config/app_secrets.dart
 stripe_keys.dart
 *_secret.dart
