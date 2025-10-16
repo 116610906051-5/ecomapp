@@ -3,12 +3,13 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:path/path.dart' as path;
 import 'package:crypto/crypto.dart';
+import '../config/app_config.dart';
 
 class CloudinaryService {
-  // Cloudinary Configuration - กรุณาอัพเดทค่าเหล่านี้
-  static const String _cloudName = 'dzifhorkm'; // ⚠️ ต้องใส่ cloud name จริง
-  static const String _apiKey = '395847192374656';
-  static const String _apiSecret = 'JIgERDuaLoD4a20Fw4JpbnJKTCs'; // ⚠️ ต้องใส่ API secret จริง
+  // Cloudinary Configuration - อ่านจาก Environment Variables
+  static String get _cloudName => CloudinaryConfig.cloudName;
+  static String get _apiKey => CloudinaryConfig.apiKey;
+  static String get _apiSecret => CloudinaryConfig.apiSecret;
   
   static const String _baseUrl = 'https://api.cloudinary.com/v1_1';
   
