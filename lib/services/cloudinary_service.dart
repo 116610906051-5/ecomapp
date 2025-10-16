@@ -45,9 +45,11 @@ class CloudinaryService {
   /// อัพโหลดไฟล์รูปภาพไปยัง Cloudinary
   static Future<String?> uploadImage(File imageFile, {String? fileName}) async {
     // ตรวจสอบการตั้งค่า credentials
-    if (_cloudName == 'YOUR_CLOUD_NAME_HERE' || _apiSecret == 'YOUR_API_SECRET_HERE') {
-      throw Exception('❌ กรุณาตั้งค่า Cloudinary credentials ใน cloudinary_service.dart\n'
-          '📋 ดูวิธีการตั้งค่าใน CLOUDINARY_SETUP.md');
+    if (_cloudName == 'YOUR_CLOUD_NAME_HERE' || 
+        _apiSecret == 'USE_BACKEND_SERVER_FOR_API_SECRET' ||
+        _cloudName.isEmpty || _apiSecret.isEmpty) {
+      throw Exception('❌ กรุณาตั้งค่า Cloudinary credentials ใน .env file\n'
+          '� ดู .env.example สำหรับตัวอย่างการตั้งค่า');
     }
     
     try {
@@ -253,15 +255,19 @@ class CloudinaryService {
 
   /// ตรวจสอบการตั้งค่า
   static bool get isConfigured {
-    return _cloudName != 'your_cloud_name' && _apiSecret != 'your_api_secret';
+    return _cloudName != 'YOUR_CLOUD_NAME_HERE' && 
+           _apiSecret != 'USE_BACKEND_SERVER_FOR_API_SECRET' &&
+           _cloudName.isNotEmpty && _apiSecret.isNotEmpty;
   }
 
   /// อัพโหลดรูปภาพแชทไปยัง Cloudinary (เก็บในโฟลเดอร์ chat)
   static Future<String?> uploadChatImage(File imageFile, {String? fileName}) async {
     // ตรวจสอบการตั้งค่า credentials
-    if (_cloudName == 'YOUR_CLOUD_NAME_HERE' || _apiSecret == 'YOUR_API_SECRET_HERE') {
-      throw Exception('❌ กรุณาตั้งค่า Cloudinary credentials ใน cloudinary_service.dart\n'
-          '📋 ดูวิธีการตั้งค่าใน CLOUDINARY_SETUP.md');
+    if (_cloudName == 'YOUR_CLOUD_NAME_HERE' || 
+        _apiSecret == 'USE_BACKEND_SERVER_FOR_API_SECRET' ||
+        _cloudName.isEmpty || _apiSecret.isEmpty) {
+      throw Exception('❌ กรุณาตั้งค่า Cloudinary credentials ใน .env file\n'
+          '� ดู .env.example สำหรับตัวอย่างการตั้งค่า');
     }
     
     try {
