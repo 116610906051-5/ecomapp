@@ -12,7 +12,12 @@
           "package_name": "ecom.com"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "236498123851-48e47dtl5a1avfblqlajptakt179iak0.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDkv922Ktn6UgmYGHt9ix9vw_0U2Wq4jo4"
@@ -20,7 +25,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "236498123851-48e47dtl5a1avfblqlajptakt179iak0.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
