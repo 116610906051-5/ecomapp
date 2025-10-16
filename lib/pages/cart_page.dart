@@ -141,172 +141,241 @@ class _CartPageState extends State<CartPage> {
       ),
       child: Padding(
         padding: EdgeInsets.all(16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Column(
           children: [
-            // รูปสินค้า
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                width: 80,
-                height: 80,
-                child: item.productImage.isNotEmpty
-                    ? CachedNetworkImage(
-                        imageUrl: item.productImage,
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) => Container(
-                          color: Colors.grey[200],
-                          child: Icon(Icons.image, color: Colors.grey[400]),
-                        ),
-                        errorWidget: (context, url, error) => Container(
-                          color: Colors.grey[200],
-                          child: Icon(Icons.broken_image, color: Colors.grey[400]),
-                        ),
-                      )
-                    : Container(
-                        color: Colors.grey[200],
-                        child: Icon(Icons.image, color: Colors.grey[400]),
-                      ),
-              ),
-            ),
-            SizedBox(width: 16),
-            
-            // ข้อมูลสินค้า
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.productName,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF1F2937),
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+            // Header row với รูป, ชื่อ, และปุ่มลบ
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // รูปสินค้า
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    width: 80,
+                    height: 80,
+                    child: item.productImage.isNotEmpty
+                        ? CachedNetworkImage(
+                            imageUrl: item.productImage,
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) => Container(
+                              color: Colors.grey[200],
+                              child: Icon(Icons.image, color: Colors.grey[400]),
+                            ),
+                            errorWidget: (context, url, error) => Container(
+                              color: Colors.grey[200],
+                              child: Icon(Icons.broken_image, color: Colors.grey[400]),
+                            ),
+                          )
+                        : Container(
+                            color: Colors.grey[200],
+                            child: Icon(Icons.image, color: Colors.grey[400]),
+                          ),
                   ),
-                  SizedBox(height: 4),
-                  
-                  // สี และ ขนาด
-                  if (item.selectedColor != null || item.selectedSize != null)
-                    Row(
-                      children: [
-                        if (item.selectedColor != null) ...[
-                          Text(
-                            'สี: ${item.selectedColor}',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Color(0xFF6B7280),
-                            ),
-                          ),
-                          if (item.selectedSize != null) SizedBox(width: 12),
-                        ],
-                        if (item.selectedSize != null)
-                          Text(
-                            'ขนาด: ${item.selectedSize}',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Color(0xFF6B7280),
-                            ),
-                          ),
-                      ],
-                    ),
-                  
-                  SizedBox(height: 8),
-                  
-                  // ราคาและปุ่มจำนวน
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                ),
+                SizedBox(width: 16),
+                
+                // ข้อมูลสินค้า
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '฿${NumberFormat('#,##0.00').format(item.price)}',
+                        item.productName,
                         style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF059669),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF1F2937),
                         ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
+                      SizedBox(height: 8),
+                      
+                      // สีและขนาด
                       Row(
                         children: [
-                          // ปุ่มลดจำนวน
-                          GestureDetector(
-                            onTap: () {
-                              cartProvider.decreaseQuantity(item.id);
-                            },
-                            child: Container(
-                              width: 32,
-                              height: 32,
+                          if (item.selectedColor != null && item.selectedColor!.isNotEmpty) ...[
+                            Container(
+                              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
-                                color: Color(0xFFF3F4F6),
+                                color: Color(0xFFF0F9FF),
                                 borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Color(0xFF0EA5E9), width: 0.5),
                               ),
-                              child: Icon(
-                                Icons.remove,
-                                size: 16,
-                                color: Color(0xFF374151),
-                              ),
-                            ),
-                          ),
-                          
-                          // จำนวน
-                          Container(
-                            width: 50,
-                            child: Text(
-                              '${item.quantity}',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF1F2937),
+                              child: Text(
+                                'สี: ${item.selectedColor}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF0EA5E9),
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                             ),
-                          ),
-                          
-                          // ปุ่มเพิ่มจำนวน
-                          GestureDetector(
-                            onTap: () {
-                              cartProvider.increaseQuantity(item.id);
-                            },
-                            child: Container(
-                              width: 32,
-                              height: 32,
+                            SizedBox(width: 8),
+                          ],
+                          if (item.selectedSize != null && item.selectedSize!.isNotEmpty)
+                            Container(
+                              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
-                                color: Color(0xFF6366F1),
+                                color: Color(0xFFF0FDF4),
                                 borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Color(0xFF22C55E), width: 0.5),
                               ),
-                              child: Icon(
-                                Icons.add,
-                                size: 16,
-                                color: Colors.white,
+                              child: Text(
+                                'ขนาด: ${item.selectedSize}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF22C55E),
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                             ),
-                          ),
                         ],
                       ),
                     ],
                   ),
-                ],
-              ),
+                ),
+                
+                // ปุ่มลบ
+                GestureDetector(
+                  onTap: () {
+                    _showDeleteConfirmation(context, item, cartProvider);
+                  },
+                  child: Container(
+                    padding: EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Color(0xFFFEF2F2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      Icons.delete_outline,
+                      color: Color(0xFFDC2626),
+                      size: 20,
+                    ),
+                  ),
+                ),
+              ],
             ),
             
-            // ปุ่มลบ
-            GestureDetector(
-              onTap: () {
-                _showDeleteConfirmation(context, item, cartProvider);
-              },
-              child: Container(
-                padding: EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Color(0xFFFEF2F2),
-                  borderRadius: BorderRadius.circular(8),
+            SizedBox(height: 16),
+            
+            // Bottom row กับราคาและปุ่มจำนวน
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // ราคาต่อชิ้น
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'ราคาต่อชิ้น',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF6B7280),
+                      ),
+                    ),
+                    Text(
+                      '฿${NumberFormat('#,##0.00').format(item.price)}',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF374151),
+                      ),
+                    ),
+                  ],
                 ),
-                child: Icon(
-                  Icons.delete_outline,
-                  color: Color(0xFFDC2626),
-                  size: 20,
+                
+                // ปุ่มควบคุมจำนวน
+                Container(
+                  decoration: BoxDecoration(
+                    color: Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Color(0xFFE2E8F0)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // ปุ่มลดจำนวน
+                      GestureDetector(
+                        onTap: () {
+                          cartProvider.decreaseQuantity(item.id);
+                        },
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: Color(0xFFF3F4F6),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(
+                            Icons.remove,
+                            size: 18,
+                            color: Color(0xFF374151),
+                          ),
+                        ),
+                      ),
+                      
+                      // จำนวน
+                      Container(
+                        width: 60,
+                        height: 36,
+                        child: Center(
+                          child: Text(
+                            '${item.quantity}',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF1F2937),
+                            ),
+                          ),
+                        ),
+                      ),
+                      
+                      // ปุ่มเพิ่มจำนวน
+                      GestureDetector(
+                        onTap: () {
+                          cartProvider.increaseQuantity(item.id);
+                        },
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: Color(0xFF6366F1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(
+                            Icons.add,
+                            size: 18,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+                
+                // ราคารวม
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      'รวม',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF6B7280),
+                      ),
+                    ),
+                    Text(
+                      '฿${NumberFormat('#,##0.00').format(item.totalPrice)}',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF10B981),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ],
         ),
@@ -335,11 +404,12 @@ class _CartPageState extends State<CartPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // สรุปราคา
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'ยอดรวมสินค้า',
+                  'ราคารวม (${cartProvider.itemCount} รายการ)',
                   style: TextStyle(
                     fontSize: 16,
                     color: Color(0xFF6B7280),
@@ -355,7 +425,9 @@ class _CartPageState extends State<CartPage> {
                 ),
               ],
             ),
+            
             SizedBox(height: 8),
+            
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -367,43 +439,29 @@ class _CartPageState extends State<CartPage> {
                   ),
                 ),
                 Text(
-                  cartProvider.shippingFee == 0 
-                      ? 'ฟรี' 
-                      : '฿${NumberFormat('#,##0.00').format(cartProvider.shippingFee)}',
+                  cartProvider.shippingFee > 0 
+                      ? '฿${NumberFormat('#,##0.00').format(cartProvider.shippingFee)}'
+                      : 'ฟรี',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: cartProvider.shippingFee == 0 
-                        ? Color(0xFF059669) 
-                        : Color(0xFF1F2937),
+                    color: cartProvider.shippingFee > 0 
+                        ? Color(0xFF1F2937)
+                        : Color(0xFF10B981),
                   ),
                 ),
               ],
             ),
-            if (cartProvider.shippingFee == 0)
-              Padding(
-                padding: EdgeInsets.only(top: 4),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Text(
-                      'ฟรีค่าส่งเมื่อซื้อครบ ฿1,000',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF059669),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            Divider(height: 24),
+            
+            Divider(height: 32, thickness: 1, color: Color(0xFFE5E7EB)),
+            
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'รวมทั้งสิ้น',
+                  'ยอดรวมทั้งหมด',
                   style: TextStyle(
-                    fontSize: 20,
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF1F2937),
                   ),
@@ -411,13 +469,27 @@ class _CartPageState extends State<CartPage> {
                 Text(
                   '฿${NumberFormat('#,##0.00').format(cartProvider.total)}',
                   style: TextStyle(
-                    fontSize: 24,
+                    fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF059669),
+                    color: Color(0xFF10B981),
                   ),
                 ),
               ],
             ),
+            
+            if (cartProvider.shippingFee == 0 && cartProvider.subtotal < 1000)
+              Padding(
+                padding: EdgeInsets.only(top: 8),
+                child: Text(
+                  'ซื้อเพิ่ม ฿${NumberFormat('#,##0.00').format(1000 - cartProvider.subtotal)} เพื่อได้ฟรีค่าส่ง',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF059669),
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
+            
             SizedBox(height: 24),
             
             Row(
