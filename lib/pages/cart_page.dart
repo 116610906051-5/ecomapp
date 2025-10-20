@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../providers/cart_provider.dart';
 import '../providers/auth_provider.dart';
 import '../models/cart.dart';
+import '../services/product_service.dart';
 import 'checkout_page.dart';
 
 class CartPage extends StatefulWidget {
@@ -102,7 +103,8 @@ class _CartPageState extends State<CartPage> {
           SizedBox(height: 32),
           ElevatedButton(
             onPressed: () {
-              Navigator.pop(context);
+              // Navigate to products page
+              Navigator.pushNamed(context, '/products');
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Color(0xFF6366F1),
@@ -126,21 +128,38 @@ class _CartPageState extends State<CartPage> {
   }
 
   Widget _buildCartItem(CartItem item, CartProvider cartProvider) {
-    return Container(
-      margin: EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: EdgeInsets.all(16),
+    return GestureDetector(
+      onTap: () async {
+        // Fetch product and navigate to product detail page
+        try {
+          final productService = ProductService();
+          final product = await productService.getProductById(item.productId);
+          if (product != null && mounted) {
+            Navigator.pushNamed(
+              context,
+              '/product-detail',
+              arguments: product,
+            );
+          }
+        } catch (e) {
+          print('Error fetching product: $e');
+        }
+      },
+      child: Container(
+        margin: EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: EdgeInsets.all(16),
         child: Column(
           children: [
             // Header row với รูป, ชื่อ, และปุ่มลบ
@@ -196,35 +215,35 @@ class _CartPageState extends State<CartPage> {
                         children: [
                           if (item.selectedColor != null && item.selectedColor!.isNotEmpty) ...[
                             Container(
-                              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
                                 color: Color(0xFFF0F9FF),
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(6),
                                 border: Border.all(color: Color(0xFF0EA5E9), width: 0.5),
                               ),
                               child: Text(
                                 'สี: ${item.selectedColor}',
                                 style: TextStyle(
-                                  fontSize: 12,
+                                  fontSize: 11,
                                   color: Color(0xFF0EA5E9),
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
                             ),
-                            SizedBox(width: 8),
+                            SizedBox(width: 6),
                           ],
                           if (item.selectedSize != null && item.selectedSize!.isNotEmpty)
                             Container(
-                              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
                                 color: Color(0xFFF0FDF4),
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(6),
                                 border: Border.all(color: Color(0xFF22C55E), width: 0.5),
                               ),
                               child: Text(
                                 'ขนาด: ${item.selectedSize}',
                                 style: TextStyle(
-                                  fontSize: 12,
+                                  fontSize: 11,
                                   color: Color(0xFF22C55E),
                                   fontWeight: FontWeight.w500,
                                 ),
@@ -380,6 +399,7 @@ class _CartPageState extends State<CartPage> {
           ],
         ),
       ),
+    ),
     );
   }
 

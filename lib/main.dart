@@ -21,6 +21,10 @@ import 'pages/my_contacts_page.dart';
 import 'pages/live_chat_page.dart';
 import 'pages/admin_chat_management_page.dart';
 import 'pages/personal_information_page.dart';
+import 'pages/address_list_page.dart';
+import 'pages/my_orders_page.dart';
+import 'pages/wishlist_page.dart';
+import 'pages/order_history_page.dart';
 import 'services/notification_service.dart';
 import 'services/navigation_service.dart';
 import 'services/stripe_service.dart';
@@ -112,6 +116,15 @@ class MyApp extends StatelessWidget {
           '/live-chat': (context) => LiveChatPage(),
           '/admin-chat': (context) => AdminChatManagementPage(),
           '/personal-information': (context) => PersonalInformationPage(),
+          '/addresses': (context) {
+            final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+            return AddressListPage(
+              isSelectionMode: args?['selectionMode'] ?? false,
+            );
+          },
+          '/my-orders': (context) => MyOrdersPage(),
+          '/wishlist': (context) => WishlistPage(),
+          '/order-history': (context) => OrderHistoryPage(),
         },
       ),
     );

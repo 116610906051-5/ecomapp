@@ -220,7 +220,7 @@ class ProfilePage extends StatelessWidget {
                     Icons.location_on_outlined,
                     'Addresses',
                     'Manage your delivery addresses',
-                    () => _showComingSoon(context),
+                    () => Navigator.pushNamed(context, '/addresses'),
                   ),
                   _buildMenuItem(
                     Icons.credit_card_outlined,
@@ -238,19 +238,19 @@ class ProfilePage extends StatelessWidget {
                     Icons.shopping_bag_outlined,
                     'My Orders',
                     'Track your current and past orders',
-                    () => _showComingSoon(context),
+                    () => Navigator.pushNamed(context, '/my-orders'),
                   ),
                   _buildMenuItem(
                     Icons.favorite_outline,
                     'Wishlist',
                     'View your saved items',
-                    () => _showComingSoon(context),
+                    () => Navigator.pushNamed(context, '/wishlist'),
                   ),
                   _buildMenuItem(
                     Icons.history,
                     'Order History',
                     'See all your previous purchases',
-                    () => _showComingSoon(context),
+                    () => Navigator.pushNamed(context, '/order-history'),
                   ),
 
                   SizedBox(height: 24),

@@ -7,7 +7,9 @@ import '../models/contact.dart';
 import '../models/order.dart';
 import '../services/contact_service.dart';
 import '../services/order_service.dart';
+import '../services/product_service.dart';
 import 'add_product_page.dart';
+import 'edit_product_page.dart';
 
 class AdminDashboardPage extends StatefulWidget {
   @override
@@ -202,30 +204,30 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     crossAxisCount: 2,
                     shrinkWrap: true,
                     physics: NeverScrollableScrollPhysics(),
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                    childAspectRatio: 1.8,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                    childAspectRatio: 1.2,
                     children: [
                       _buildStatsCard(
                         'สินค้าทั้งหมด',
                         totalProducts.toString(),
-                        Icons.inventory,
+                        Icons.inventory_2_outlined,
                         Color(0xFF3B82F6),
                       ),
                       _buildStatsCard(
-                        'คำสั่งซื้อทั้งหมด',
+                        'คำสั่งซื้อ',
                         orderStats['totalOrders'].toString(),
-                        Icons.shopping_cart,
+                        Icons.shopping_cart_outlined,
                         Color(0xFF10B981),
                       ),
                       _buildStatsCard(
                         'ยอดขายรวม',
                         '₿${orderStats['totalRevenue'].toStringAsFixed(0)}',
-                        Icons.attach_money,
+                        Icons.monetization_on_outlined,
                         Color(0xFF8B5CF6),
                       ),
                       _buildStatsCard(
-                        'คำสั่งซื้อเดือนนี้',
+                        'ออเดอร์เดือนนี้',
                         orderStats['monthOrders'].toString(),
                         Icons.trending_up,
                         Color(0xFFEF4444),
@@ -715,31 +717,304 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   }
 
   Widget _buildAnalytics() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.analytics,
-            size: 80,
-            color: Colors.grey,
+    return FutureBuilder<Map<String, dynamic>>(
+      future: OrderService.getOrderStatistics(),
+      builder: (context, orderSnapshot) {
+        if (orderSnapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        }
+
+        final orderStats = orderSnapshot.data ?? {
+          'totalOrders': 0,
+          'monthOrders': 0,
+          'totalRevenue': 0.0,
+          'monthRevenue': 0.0,
+        };
+
+        return Consumer<ProductProvider>(
+          builder: (context, productProvider, child) {
+            final totalProducts = productProvider.products.length;
+            final inStockProducts = productProvider.products.where((p) => p.inStock).length;
+
+            return SingleChildScrollView(
+              padding: EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header
+                  Text(
+                    'การวิเคราะห์ข้อมูล',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1E293B),
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'ข้อมูลสถิติและการวิเคราะห์ธุรกิจ',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Color(0xFF64748B),
+                    ),
+                  ),
+                  SizedBox(height: 30),
+
+                  // Sales Analytics
+                  _buildAnalyticSection(
+                    'สถิติการขาย',
+                    Icons.attach_money,
+                    Color(0xFF8B5CF6),
+                    [
+                      _buildAnalyticCard(
+                        'ยอดขายทั้งหมด',
+                        '₿${orderStats['totalRevenue'].toStringAsFixed(2)}',
+                        Icons.monetization_on,
+                        Color(0xFF8B5CF6),
+                      ),
+                      _buildAnalyticCard(
+                        'ยอดขายเดือนนี้',
+                        '₿${orderStats['monthRevenue'].toStringAsFixed(2)}',
+                        Icons.trending_up,
+                        Color(0xFF10B981),
+                      ),
+                    ],
+                  ),
+
+                  SizedBox(height: 24),
+
+                  // Order Analytics
+                  _buildAnalyticSection(
+                    'สถิติคำสั่งซื้อ',
+                    Icons.shopping_cart,
+                    Color(0xFF3B82F6),
+                    [
+                      _buildAnalyticCard(
+                        'คำสั่งซื้อทั้งหมด',
+                        '${orderStats['totalOrders']}',
+                        Icons.receipt_long,
+                        Color(0xFF3B82F6),
+                      ),
+                      _buildAnalyticCard(
+                        'คำสั่งซื้อเดือนนี้',
+                        '${orderStats['monthOrders']}',
+                        Icons.calendar_month,
+                        Color(0xFFEF4444),
+                      ),
+                      _buildAnalyticCard(
+                        'ค่าเฉลี่ยต่อออเดอร์',
+                        orderStats['totalOrders'] > 0
+                            ? '₿${(orderStats['totalRevenue'] / orderStats['totalOrders']).toStringAsFixed(2)}'
+                            : '₿0.00',
+                        Icons.calculate,
+                        Color(0xFFF59E0B),
+                      ),
+                    ],
+                  ),
+
+                  SizedBox(height: 24),
+
+                  // Product Analytics
+                  _buildAnalyticSection(
+                    'สถิติสินค้า',
+                    Icons.inventory,
+                    Color(0xFF10B981),
+                    [
+                      _buildAnalyticCard(
+                        'สินค้าทั้งหมด',
+                        '$totalProducts',
+                        Icons.inventory_2,
+                        Color(0xFF10B981),
+                      ),
+                      _buildAnalyticCard(
+                        'สินค้าพร้อมขาย',
+                        '$inStockProducts',
+                        Icons.check_circle,
+                        Color(0xFF3B82F6),
+                      ),
+                      _buildAnalyticCard(
+                        'สินค้าหมด',
+                        '${totalProducts - inStockProducts}',
+                        Icons.remove_circle,
+                        Color(0xFFEF4444),
+                      ),
+                    ],
+                  ),
+
+                  SizedBox(height: 24),
+
+                  // Performance Metrics
+                  Container(
+                    padding: EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Color(0xFF6366F1).withOpacity(0.3),
+                          blurRadius: 10,
+                          offset: Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.insights, color: Colors.white, size: 28),
+                            SizedBox(width: 12),
+                            Text(
+                              'ประสิทธิภาพธุรกิจ',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 20),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildPerformanceMetric(
+                                'อัตราการแปลง',
+                                '${((inStockProducts / (totalProducts > 0 ? totalProducts : 1)) * 100).toStringAsFixed(1)}%',
+                                Icons.timeline,
+                              ),
+                            ),
+                            SizedBox(width: 16),
+                            Expanded(
+                              child: _buildPerformanceMetric(
+                                'Growth Rate',
+                                orderStats['monthOrders'] > 0 ? '+${((orderStats['monthOrders'] / 30) * 100).toStringAsFixed(0)}%' : '0%',
+                                Icons.trending_up,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildAnalyticSection(String title, IconData icon, Color color, List<Widget> cards) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, color: color, size: 20),
+            ),
+            SizedBox(width: 12),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1E293B),
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 16),
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: cards,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAnalyticCard(String title, String value, IconData icon, Color color) {
+    return Container(
+      width: (MediaQuery.of(context).size.width - 64) / 2,
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.2)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: Offset(0, 2),
           ),
-          SizedBox(height: 20),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color, size: 24),
+          SizedBox(height: 12),
           Text(
-            'การวิเคราะห์ข้อมูล',
+            value,
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: Colors.grey[800],
+              color: Color(0xFF1E293B),
             ),
           ),
-          SizedBox(height: 10),
+          SizedBox(height: 4),
           Text(
-            'ฟีเจอร์นี้จะเพิ่มในอนาคต',
+            title,
             style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey[600],
+              fontSize: 12,
+              color: Color(0xFF64748B),
             ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPerformanceMetric(String label, String value, IconData icon) {
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: Colors.white, size: 24),
+          SizedBox(height: 8),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.white.withOpacity(0.9),
+            ),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
@@ -748,7 +1023,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
 
   Widget _buildStatsCard(String title, String value, IconData icon, Color color) {
     return Container(
-      padding: EdgeInsets.all(12), // ลดจาก 16 เป็น 12
+      padding: EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -762,46 +1037,40 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min, // ใช้พื้นที่เท่าที่จำเป็น
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Icon(icon, color: color, size: 20), // ลดจาก 24 เป็น 20
-              Container(
-                padding: EdgeInsets.all(6), // ลดจาก 8 เป็น 6
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Icon(icon, color: color, size: 14), // ลดจาก 16 เป็น 14
-              ),
-            ],
+          // ไอคอน
+          Container(
+            padding: EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: color, size: 20),
           ),
-          SizedBox(height: 8), // ลดจาก 12 เป็น 8
-          Flexible( // ใช้ Flexible เพื่อป้องกัน overflow
+          // ตัวเลข
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
             child: Text(
               value,
               style: TextStyle(
-                fontSize: 18, // ลดจาก 20 เป็น 18
+                fontSize: 22,
                 fontWeight: FontWeight.bold,
                 color: Color(0xFF1E293B),
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
             ),
           ),
-          SizedBox(height: 2), // ลดระยะห่าง
-          Flexible( // ใช้ Flexible เพื่อป้องกัน overflow
-            child: Text(
-              title,
-              style: TextStyle(
-                fontSize: 11, // ลดจาก 12 เป็น 11
-                color: Colors.grey[600],
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+          // ป้ายกำกับ
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 12,
+              color: Color(0xFF64748B),
+              fontWeight: FontWeight.w500,
             ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -1274,18 +1543,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   }
 
   void _showEditProductDialog(Product product) {
-    // TODO: สร้าง dialog สำหรับแก้ไขสินค้า
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('แก้ไขสินค้า'),
-        content: Text('ฟีเจอร์นี้จะเพิ่มในอนาคต'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('ปิด'),
-          ),
-        ],
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditProductPage(product: product),
       ),
     );
   }
@@ -1295,19 +1556,69 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text('ยืนยันการลบ'),
-        content: Text('คุณต้องการลบสินค้า "${product.name}" หรือไม่?'),
+        content: Text('คุณต้องการลบสินค้า "${product.name}" หรือไม่?\n\nการกระทำนี้ไม่สามารถย้อนกลับได้'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text('ยกเลิก'),
           ),
           TextButton(
-            onPressed: () {
-              // TODO: ลบสินค้าจาก Firebase
+            onPressed: () async {
               Navigator.pop(context);
+              
+              // แสดง loading
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('ฟีเจอร์นี้จะเพิ่มในอนาคต')),
+                SnackBar(
+                  content: Row(
+                    children: [
+                      SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      ),
+                      SizedBox(width: 16),
+                      Text('กำลังลบสินค้า...'),
+                    ],
+                  ),
+                  duration: Duration(seconds: 5),
+                ),
               );
+
+              try {
+                // ลบสินค้าจาก Firebase
+                await ProductService().deleteProduct(product.id);
+                
+                // รีเฟรชข้อมูล
+                if (mounted) {
+                  Provider.of<ProductProvider>(context, listen: false).loadProducts();
+                }
+
+                // แสดงข้อความสำเร็จ
+                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Row(
+                      children: [
+                        Icon(Icons.check_circle, color: Colors.white),
+                        SizedBox(width: 16),
+                        Text('ลบสินค้า "${product.name}" สำเร็จ'),
+                      ],
+                    ),
+                    backgroundColor: Color(0xFF10B981),
+                  ),
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('เกิดข้อผิดพลาด: $e'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
             },
             child: Text('ลบ', style: TextStyle(color: Colors.red)),
           ),

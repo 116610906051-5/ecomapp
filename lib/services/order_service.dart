@@ -222,11 +222,18 @@ class OrderService {
   static Stream<List<Order>> getUserOrdersStream(String userId) {
     return _ordersRef
         .where('userId', isEqualTo: userId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => Order.fromMap(doc.data() as Map<String, dynamic>))
-            .toList());
+        .map((snapshot) {
+          // Sort in memory to avoid compound index requirement
+          final orders = snapshot.docs
+              .map((doc) => Order.fromMap(doc.data() as Map<String, dynamic>))
+              .toList();
+          
+          // Sort by createdAt descending
+          orders.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          
+          return orders;
+        });
   }
 
   /// รับคำสั่งซื้อทั้งหมด (สำหรับ Admin)

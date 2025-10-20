@@ -3,7 +3,9 @@ import 'package:provider/provider.dart';
 import '../providers/cart_provider.dart';
 import '../providers/auth_provider.dart' as auth;
 import '../services/order_service.dart';
+import '../services/address_service.dart';
 import '../models/order.dart';
+import '../models/address.dart';
 import 'package:flutter_stripe/flutter_stripe.dart' as stripe;
 
 class CheckoutPage extends StatefulWidget {
@@ -19,9 +21,67 @@ class _CheckoutPageState extends State<CheckoutPage> {
   final _cityController = TextEditingController();
   final _postalController = TextEditingController();
 
-  
+  final AddressService _addressService = AddressService();
+  Address? _selectedAddress;
   String _selectedPaymentMethod = 'card';
   bool _isProcessing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDefaultAddress();
+  }
+
+  Future<void> _loadDefaultAddress() async {
+    final authProvider = Provider.of<auth.AuthProvider>(context, listen: false);
+    if (authProvider.user != null) {
+      try {
+        final defaultAddress = await _addressService.getDefaultAddress(authProvider.user!.uid);
+        if (defaultAddress != null) {
+          setState(() {
+            _selectedAddress = defaultAddress;
+            _fillAddressFields(defaultAddress);
+          });
+        }
+      } catch (e) {
+        print('Error loading default address: $e');
+      }
+    }
+  }
+
+  void _fillAddressFields(Address address) {
+    _nameController.text = address.fullName;
+    _phoneController.text = address.phoneNumber;
+    _addressController.text = '${address.addressLine1} ${address.addressLine2}'.trim();
+    _cityController.text = address.province;
+    _postalController.text = address.postalCode;
+  }
+
+  Future<void> _selectAddress() async {
+    final authProvider = Provider.of<auth.AuthProvider>(context, listen: false);
+    if (authProvider.user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('กรุณาเข้าสู่ระบบก่อน'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final result = await Navigator.pushNamed(
+      context,
+      '/addresses',
+      arguments: {'selectionMode': true},
+    );
+
+    if (result != null && result is Address) {
+      setState(() {
+        _selectedAddress = result;
+        _fillAddressFields(result);
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -167,9 +227,84 @@ class _CheckoutPageState extends State<CheckoutPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'ที่อยู่จัดส่ง',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'ที่อยู่จัดส่ง',
+                                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                              ),
+                              TextButton.icon(
+                                onPressed: _selectAddress,
+                                icon: Icon(Icons.location_on, size: 18),
+                                label: Text('เลือกที่อยู่ที่บันทึกไว้'),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: Colors.orange,
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (_selectedAddress != null) ...[
+                            Container(
+                              margin: EdgeInsets.only(top: 8, bottom: 16),
+                              padding: EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.orange.shade50,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.orange.shade200),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(Icons.check_circle, color: Colors.orange, size: 20),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        'ใช้ที่อยู่นี้',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.orange.shade800,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: 8),
+                                  Text(_selectedAddress!.fullAddress),
+                                ],
+                              ),
+                            ),
+                          ],
+                          SizedBox(height: 16),
+                          TextFormField(
+                            controller: _nameController,
+                            decoration: InputDecoration(
+                              labelText: 'ชื่อ-นามสกุล',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.person),
+                            ),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'กรุณากรอกชื่อ-นามสกุล';
+                              }
+                              return null;
+                            },
+                          ),
+                          SizedBox(height: 16),
+                          TextFormField(
+                            controller: _phoneController,
+                            decoration: InputDecoration(
+                              labelText: 'เบอร์โทรศัพท์',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.phone),
+                            ),
+                            keyboardType: TextInputType.phone,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'กรุณากรอกเบอร์โทรศัพท์';
+                              }
+                              return null;
+                            },
                           ),
                           SizedBox(height: 16),
                           TextFormField(
