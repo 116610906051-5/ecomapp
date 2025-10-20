@@ -10,6 +10,7 @@ import '../services/order_service.dart';
 import '../services/product_service.dart';
 import 'add_product_page.dart';
 import 'edit_product_page.dart';
+import 'admin_coupon_management_page.dart';
 
 class AdminDashboardPage extends StatefulWidget {
   @override
@@ -1444,6 +1445,64 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           
           SizedBox(height: 24),
           
+          // Management Actions
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: Offset(0, 2),
+                )
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Text(
+                    'เครื่องมือจัดการ',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1E293B),
+                    ),
+                  ),
+                ),
+                Divider(height: 1),
+                ListTile(
+                  leading: Container(
+                    padding: EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(Icons.discount, color: Colors.orange),
+                  ),
+                  title: Text(
+                    'จัดการโค้ดส่วนลด',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text('สร้างและจัดการโค้ดส่วนลดสำหรับลูกค้า'),
+                  trailing: Icon(Icons.arrow_forward_ios, size: 16),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AdminCouponManagementPage(),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+          
+          SizedBox(height: 24),
+          
           // Admin Permissions Info
           Container(
             padding: EdgeInsets.all(20),
@@ -1477,6 +1536,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 _buildPermissionItem('จัดการสินค้า - เพิ่ม แก้ไข ลบสินค้า'),
                 _buildPermissionItem('ดูข้อมูล Dashboard และ Analytics'),
                 _buildPermissionItem('จัดการคำสั่งซื้อ'),
+                _buildPermissionItem('จัดการโค้ดส่วนลด'),
                 _buildPermissionItem('เข้าถึงหน้า Admin Dashboard'),
                 SizedBox(height: 12),
                 Text(

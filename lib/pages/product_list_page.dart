@@ -18,22 +18,31 @@ class _ProductListPageState extends State<ProductListPage> {
   String _currentInput = '';
   bool _showSearchBar = false;
 
-  final List<String> categories = ['All', 'Electronics', 'Fashion', 'Home & Garden', 'Sports', 'Books'];
   final List<String> sortOptions = ['Popular', 'Price: Low to High', 'Price: High to Low', 'Newest'];
 
   @override
   void initState() {
     super.initState();
-    // Check if we received search query from navigation arguments
+    // Check if we received search query or category from navigation arguments
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-      if (args != null && args['searchQuery'] != null) {
-        setState(() {
-          _searchQuery = args['searchQuery'];
-          _currentInput = args['searchQuery'];
-          _searchController.text = args['searchQuery'];
-          _showSearchBar = true;
-        });
+      if (args != null) {
+        if (args['searchQuery'] != null) {
+          setState(() {
+            _searchQuery = args['searchQuery'];
+            _currentInput = args['searchQuery'];
+            _searchController.text = args['searchQuery'];
+            _showSearchBar = true;
+          });
+        }
+        if (args['category'] != null) {
+          setState(() {
+            selectedCategory = args['category'];
+          });
+          // Update ProductProvider with selected category
+          final productProvider = Provider.of<ProductProvider>(context, listen: false);
+          productProvider.setSelectedCategory(args['category']);
+        }
       }
     });
   }
@@ -167,41 +176,49 @@ class _ProductListPageState extends State<ProductListPage> {
             child: Column(
               children: [
                 // Categories Filter
-                Container(
-                  height: 50,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: categories.length,
-                    itemBuilder: (context, index) {
-                      final category = categories[index];
-                      final isSelected = selectedCategory == category;
-                      return GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            selectedCategory = category;
-                          });
+                Consumer<ProductProvider>(
+                  builder: (context, productProvider, child) {
+                    final categories = ['All', ...productProvider.categories];
+                    
+                    return Container(
+                      height: 50,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: categories.length,
+                        itemBuilder: (context, index) {
+                          final category = categories[index];
+                          final isSelected = selectedCategory == category;
+                          return GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                selectedCategory = category;
+                              });
+                              // อัพเดท ProductProvider
+                              productProvider.setSelectedCategory(category);
+                            },
+                            child: Container(
+                              margin: EdgeInsets.only(right: 12),
+                              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: isSelected ? Color(0xFF6366F1) : Color(0xFFF1F5F9),
+                                borderRadius: BorderRadius.circular(25),
+                                border: Border.all(
+                                  color: isSelected ? Color(0xFF6366F1) : Color(0xFFE2E8F0),
+                                ),
+                              ),
+                              child: Text(
+                                category,
+                                style: TextStyle(
+                                  color: isSelected ? Colors.white : Color(0xFF64748B),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          );
                         },
-                        child: Container(
-                          margin: EdgeInsets.only(right: 12),
-                          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                          decoration: BoxDecoration(
-                            color: isSelected ? Color(0xFF6366F1) : Color(0xFFF1F5F9),
-                            borderRadius: BorderRadius.circular(25),
-                            border: Border.all(
-                              color: isSelected ? Color(0xFF6366F1) : Color(0xFFE2E8F0),
-                            ),
-                          ),
-                          child: Text(
-                            category,
-                            style: TextStyle(
-                              color: isSelected ? Colors.white : Color(0xFF64748B),
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+                      ),
+                    );
+                  },
                 ),
                 SizedBox(height: 16),
                 // Sort and Filter Row
@@ -622,21 +639,25 @@ class _ProductListPageState extends State<ProductListPage> {
 
   Widget _buildProductListCard(Product product) {
 
-    return Container(
-      margin: EdgeInsets.only(bottom: 16),
-      padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 12,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
+    return GestureDetector(
+      onTap: () {
+        Navigator.pushNamed(context, '/product-detail', arguments: product);
+      },
+      child: Container(
+        margin: EdgeInsets.only(bottom: 16),
+        padding: EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 12,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
         children: [
           // Product Image
           Container(
@@ -749,6 +770,7 @@ class _ProductListPageState extends State<ProductListPage> {
             ],
           ),
         ],
+      ),
       ),
     );
   }

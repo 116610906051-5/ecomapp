@@ -9,6 +9,7 @@ import 'services/firebase_config.dart';
 import 'providers/product_provider.dart';
 import 'providers/cart_provider.dart';
 import 'providers/auth_provider.dart';
+import 'providers/wishlist_provider.dart';
 import 'widgets/data_initializer.dart';
 import 'widgets/auth_wrapper.dart';
 import 'pages/login_page.dart';
@@ -58,6 +59,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => ProductProvider()),
         ChangeNotifierProvider(create: (_) => CartProvider()),
+        ChangeNotifierProvider(create: (_) => WishlistProvider()),
       ],
       child: MaterialApp(
         title: 'E-Commerce App',

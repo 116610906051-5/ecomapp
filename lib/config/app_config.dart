@@ -1,15 +1,13 @@
 import 'dart:io';
+import 'app_secrets.dart';
 
 // Stripe Configuration Class
-// ใช้ค่าจาก Environment Variables เท่านั้น
+// ใช้ค่าจาก app_secrets.dart หรือ Environment Variables
 class StripeConfig {
-  // อ่านค่าจาก Environment Variables
+  // อ่านค่าจาก Environment Variables หรือใช้ค่าจาก AppSecrets
   static String get publishableKey {
     final key = Platform.environment['STRIPE_PUBLISHABLE_KEY'] ?? 
-        'your_stripe_publishable_key_here';
-    if (key == 'your_stripe_publishable_key_here') {
-      print('⚠️  Warning: Using placeholder Stripe Publishable Key');
-    }
+        AppSecrets.stripePublishableKey;
     return key;
   }
   
@@ -17,10 +15,7 @@ class StripeConfig {
   // Production ควรใช้ Backend Server
   static String get secretKey {
     final key = Platform.environment['STRIPE_SECRET_KEY'] ?? 
-        'your_stripe_secret_key_here';
-    if (key == 'your_stripe_secret_key_here') {
-      print('⚠️  Warning: Using placeholder Stripe Secret Key');
-    }
+        AppSecrets.stripeSecretKey;
     return key;
   }
 }
@@ -28,31 +23,19 @@ class StripeConfig {
 // Cloudinary Configuration
 class CloudinaryConfig {
   static String get cloudName {
-    final name = Platform.environment['CLOUDINARY_CLOUD_NAME'] ?? 
-        'your_cloudinary_cloud_name';
-    if (name == 'your_cloudinary_cloud_name') {
-      print('⚠️  Warning: Using placeholder Cloudinary Cloud Name');
-    }
-    return name;
+    return Platform.environment['CLOUDINARY_CLOUD_NAME'] ?? 
+        AppSecrets.cloudinaryCloudName;
   }
     
   static String get apiKey {
-    final key = Platform.environment['CLOUDINARY_API_KEY'] ?? 
-        'your_cloudinary_api_key';
-    if (key == 'your_cloudinary_api_key') {
-      print('⚠️  Warning: Using placeholder Cloudinary API Key');
-    }
-    return key;
+    return Platform.environment['CLOUDINARY_API_KEY'] ?? 
+        AppSecrets.cloudinaryApiKey;
   }
     
   // API Secret สำหรับ Development เท่านั้น
   static String get apiSecret {
-    final secret = Platform.environment['CLOUDINARY_API_SECRET'] ?? 
-        'your_cloudinary_api_secret';
-    if (secret == 'your_cloudinary_api_secret') {
-      print('⚠️  Warning: Using placeholder Cloudinary API Secret');
-    }
-    return secret;
+    return Platform.environment['CLOUDINARY_API_SECRET'] ?? 
+        AppSecrets.cloudinaryApiSecret;
   }
 }
 
@@ -60,17 +43,17 @@ class CloudinaryConfig {
 class FirebaseConfig {
   static String get apiKey => 
     Platform.environment['FIREBASE_API_KEY'] ?? 
-    'your_firebase_api_key';
+    AppSecrets.firebaseApiKey;
     
   static String get projectId => 
     Platform.environment['FIREBASE_PROJECT_ID'] ?? 
-    'your_firebase_project_id';
+    AppSecrets.firebaseProjectId;
     
   static String get storageBucket => 
     Platform.environment['FIREBASE_STORAGE_BUCKET'] ?? 
-    'your_firebase_storage_bucket';
+    AppSecrets.firebaseStorageBucket;
     
   static String get appId => 
     Platform.environment['FIREBASE_APP_ID'] ?? 
-    'your_firebase_app_id';
+    AppSecrets.firebaseAppId;
 }

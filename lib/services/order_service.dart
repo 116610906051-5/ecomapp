@@ -17,6 +17,8 @@ class OrderService {
     required ShippingAddress shippingAddress,
     PaymentMethod paymentMethod = PaymentMethod.creditCard,
     double shippingFee = 50.0,
+    String? couponId,
+    double discountAmount = 0.0,
   }) async {
     try {
       print('📦 Creating order from cart for user: $userId');
@@ -46,7 +48,7 @@ class OrderService {
       )).toList();
 
       final subtotal = cart.totalAmount;
-      final totalAmount = subtotal + shippingFee;
+      final totalAmount = subtotal + shippingFee - discountAmount;
 
       // สร้าง Order
       final orderId = _ordersRef.doc().id;
@@ -60,6 +62,8 @@ class OrderService {
         items: orderItems,
         subtotal: subtotal,
         shippingFee: shippingFee,
+        discount: discountAmount,
+        couponCode: couponId,
         totalAmount: totalAmount,
         status: OrderStatus.pending,
         paymentMethod: paymentMethod,
@@ -78,7 +82,7 @@ class OrderService {
     }
   }
 
-  /// สร้าง Payment Intent สำหรับคำสั่งซื้อ
+  /// สร้าง Payment Intent สำหรับคำสั่งซื้อ (ใช้งาน Stripe)
   static Future<Map<String, dynamic>> createPaymentIntentForOrder({
     required String orderId,
     required double amount,

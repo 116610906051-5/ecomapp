@@ -4,8 +4,10 @@ import '../providers/cart_provider.dart';
 import '../providers/auth_provider.dart' as auth;
 import '../services/order_service.dart';
 import '../services/address_service.dart';
+import '../services/coupon_service.dart';
 import '../models/order.dart';
 import '../models/address.dart';
+import '../models/coupon.dart';
 import 'package:flutter_stripe/flutter_stripe.dart' as stripe;
 
 class CheckoutPage extends StatefulWidget {
@@ -20,11 +22,17 @@ class _CheckoutPageState extends State<CheckoutPage> {
   final _addressController = TextEditingController();
   final _cityController = TextEditingController();
   final _postalController = TextEditingController();
+  final _couponController = TextEditingController();
 
   final AddressService _addressService = AddressService();
+  final CouponService _couponService = CouponService();
+  
   Address? _selectedAddress;
+  Coupon? _appliedCoupon;
   String _selectedPaymentMethod = 'card';
   bool _isProcessing = false;
+  bool _isApplyingCoupon = false;
+  double _discountAmount = 0.0;
 
   @override
   void initState() {
@@ -90,6 +98,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
     _addressController.dispose();
     _cityController.dispose();
     _postalController.dispose();
+    _couponController.dispose();
     super.dispose();
   }
   @override
@@ -368,6 +377,94 @@ class _CheckoutPageState extends State<CheckoutPage> {
                   
                   SizedBox(height: 24),
                   
+                  // Coupon Code Section
+                  Card(
+                    child: Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'โค้ดส่วนลด',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                          SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _couponController,
+                                  decoration: InputDecoration(
+                                    labelText: 'กรอกโค้ดส่วนลด',
+                                    border: OutlineInputBorder(),
+                                    prefixIcon: Icon(Icons.discount, color: Colors.orange),
+                                    hintText: 'เช่น SAVE10',
+                                  ),
+                                  textCapitalization: TextCapitalization.characters,
+                                  enabled: _discountAmount == 0,
+                                ),
+                              ),
+                              SizedBox(width: 12),
+                              ElevatedButton(
+                                onPressed: (_discountAmount > 0 || _isApplyingCoupon) 
+                                  ? null 
+                                  : () => _applyCoupon(cartProvider),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.orange,
+                                  foregroundColor: Colors.white,
+                                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                                ),
+                                child: _isApplyingCoupon
+                                  ? SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                      ),
+                                    )
+                                  : Text(_discountAmount > 0 ? 'ใช้แล้ว' : 'ใช้'),
+                              ),
+                            ],
+                          ),
+                          if (_discountAmount > 0) ...[
+                            SizedBox(height: 12),
+                            Container(
+                              padding: EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.green.shade50,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.green.shade200),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.check_circle, color: Colors.green, size: 20),
+                                  SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      'ส่วนลด ฿${_discountAmount.toStringAsFixed(2)} ถูกใช้แล้ว',
+                                      style: TextStyle(
+                                        color: Colors.green.shade800,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: Icon(Icons.close, size: 18),
+                                    color: Colors.green.shade700,
+                                    onPressed: _removeCoupon,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                  
+                  SizedBox(height: 24),
+                  
                   // Payment Method
                   Card(
                     child: Padding(
@@ -465,6 +562,85 @@ class _CheckoutPageState extends State<CheckoutPage> {
     );
   }
 
+  Future<void> _applyCoupon(CartProvider cartProvider) async {
+    final couponCode = _couponController.text.trim().toUpperCase();
+    
+    if (couponCode.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('กรุณากรอกโค้ดส่วนลด'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isApplyingCoupon = true;
+    });
+
+    try {
+      final authProvider = Provider.of<auth.AuthProvider>(context, listen: false);
+      if (authProvider.user == null) {
+        throw Exception('กรุณาเข้าสู่ระบบก่อน');
+      }
+
+      final result = await _couponService.validateAndUseCoupon(
+        code: couponCode,
+        orderAmount: cartProvider.cart!.totalAmount,
+      );
+
+      if (result['success'] == true) {
+        setState(() {
+          _appliedCoupon = result['coupon'];
+          _discountAmount = result['discountAmount'];
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✅ ใช้โค้ดส่วนลดสำเร็จ! ลด ฿${_discountAmount.toStringAsFixed(2)}'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ ${result['message']}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('เกิดข้อผิดพลาด: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isApplyingCoupon = false;
+        });
+      }
+    }
+  }
+
+  void _removeCoupon() {
+    setState(() {
+      _appliedCoupon = null;
+      _discountAmount = 0.0;
+      _couponController.clear();
+    });
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('ยกเลิกโค้ดส่วนลดแล้ว'),
+        backgroundColor: Colors.blue,
+      ),
+    );
+  }
+
   Future<void> _processCheckout(BuildContext context, CartProvider cartProvider) async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -481,6 +657,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
       );
       return;
     }
+
+    // Show payment confirmation dialog
+    final double finalAmount = cartProvider.cart!.totalAmount - _discountAmount;
+    final confirmed = await _showPaymentConfirmationDialog(context, finalAmount);
+    if (confirmed != true) return;
 
     setState(() {
       _isProcessing = true;
@@ -519,17 +700,20 @@ class _CheckoutPageState extends State<CheckoutPage> {
         customerPhone: _phoneController.text,
         shippingAddress: shippingAddress,
         paymentMethod: paymentMethod,
+        couponId: _appliedCoupon?.id,
+        discountAmount: _discountAmount,
       );
 
-      // Process payment for credit card
+      // Process payment based on method
       if (_selectedPaymentMethod == 'card') {
+        // Card payment - Use Stripe
         try {
-          print('💳 Processing credit card payment...');
+          print('💳 Processing Stripe payment...');
           
           // Create payment intent
           final paymentIntent = await OrderService.createPaymentIntentForOrder(
             orderId: order.id,
-            amount: order.totalAmount,
+            amount: finalAmount,
           );
           
           // Present Stripe Payment Sheet
@@ -544,21 +728,34 @@ class _CheckoutPageState extends State<CheckoutPage> {
               status: OrderStatus.paid,
               paymentIntentId: paymentIntent['id'],
             );
-            
-            print('✅ Payment completed successfully');
+            print('✅ Stripe payment completed successfully');
           } else {
             // Payment cancelled or failed
             throw Exception('การชำระเงินถูกยกเลิกหรือไม่สำเร็จ');
           }
         } catch (e) {
-          print('❌ Payment error: $e');
+          print('❌ Stripe payment error: $e');
           // Cancel order if payment fails
           await OrderService.updateOrderStatus(
             orderId: order.id,
             status: OrderStatus.cancelled,
           );
-          rethrow; // Re-throw to show error to user
+          rethrow;
         }
+      } else if (_selectedPaymentMethod == 'transfer') {
+        // Bank transfer - keep as pending
+        // Order status is already pending by default
+      } else if (_selectedPaymentMethod == 'cod') {
+        // COD - mark as processing
+        await OrderService.updateOrderStatus(
+          orderId: order.id,
+          status: OrderStatus.processing,
+        );
+      }
+
+      // Increment coupon usage count if coupon was used
+      if (_appliedCoupon != null) {
+        await _couponService.incrementUsageCount(_appliedCoupon!.id);
       }
 
       // Clear cart after successful order
@@ -592,6 +789,455 @@ class _CheckoutPageState extends State<CheckoutPage> {
     }
   }
 
+  Future<bool?> _showPaymentConfirmationDialog(BuildContext context, double finalAmount) {
+    final cartProvider = Provider.of<CartProvider>(context, listen: false);
+    
+    return showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.75,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
+          ),
+        ),
+        child: Column(
+          children: [
+            // Handle bar
+            Container(
+              margin: EdgeInsets.only(top: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            
+            // Header
+            Container(
+              padding: EdgeInsets.all(20),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'ชำระเงิน',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1E293B),
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.close, color: Colors.grey[600]),
+                    onPressed: () => Navigator.pop(context, false),
+                  ),
+                ],
+              ),
+            ),
+            
+            Divider(height: 1),
+            
+            Expanded(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Payment Method Section
+                    Container(
+                      padding: EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Color(0xFFE2E8F0)),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: _getPaymentMethodColor(_selectedPaymentMethod).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Icon(
+                              _getPaymentMethodIcon(_selectedPaymentMethod),
+                              color: _getPaymentMethodColor(_selectedPaymentMethod),
+                              size: 24,
+                            ),
+                          ),
+                          SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _getPaymentMethodName(_selectedPaymentMethod),
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF1E293B),
+                                  ),
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  _getPaymentMethodDescription(_selectedPaymentMethod),
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Color(0xFF64748B),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    
+                    SizedBox(height: 24),
+                    
+                    // Order Summary
+                    Text(
+                      'รายละเอียดคำสั่งซื้อ',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1E293B),
+                      ),
+                    ),
+                    SizedBox(height: 12),
+                    
+                    Container(
+                      padding: EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Color(0xFFE2E8F0)),
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'จำนวนสินค้า',
+                                style: TextStyle(
+                                  color: Color(0xFF64748B),
+                                  fontSize: 14,
+                                ),
+                              ),
+                              Text(
+                                '${cartProvider.cart!.items.fold(0, (sum, item) => sum + item.quantity)} ชิ้น',
+                                style: TextStyle(
+                                  color: Color(0xFF1E293B),
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 12),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'ยอดรวม',
+                                style: TextStyle(
+                                  color: Color(0xFF64748B),
+                                  fontSize: 14,
+                                ),
+                              ),
+                              Text(
+                                '฿${cartProvider.cart!.totalAmount.toStringAsFixed(2)}',
+                                style: TextStyle(
+                                  color: Color(0xFF1E293B),
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                          
+                          if (_discountAmount > 0) ...[
+                            SizedBox(height: 12),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(Icons.discount, size: 16, color: Color(0xFF10B981)),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      'ส่วนลด',
+                                      style: TextStyle(
+                                        color: Color(0xFF10B981),
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Text(
+                                  '-฿${_discountAmount.toStringAsFixed(2)}',
+                                  style: TextStyle(
+                                    color: Color(0xFF10B981),
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                          
+                          SizedBox(height: 12),
+                          Divider(height: 1),
+                          SizedBox(height: 12),
+                          
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'ยอดชำระ',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF1E293B),
+                                ),
+                              ),
+                              Text(
+                                '฿${finalAmount.toStringAsFixed(2)}',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF6366F1),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    
+                    SizedBox(height: 24),
+                    
+                    // Shipping Address
+                    if (_selectedAddress != null) ...[
+                      Text(
+                        'ที่อยู่จัดส่ง',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF1E293B),
+                        ),
+                      ),
+                      SizedBox(height: 12),
+                      Container(
+                        padding: EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Color(0xFFE2E8F0)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.location_on, size: 18, color: Color(0xFF6366F1)),
+                                SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    _selectedAddress!.fullName,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF1E293B),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              _selectedAddress!.phoneNumber,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Color(0xFF64748B),
+                              ),
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              _selectedAddress!.fullAddress,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Color(0xFF64748B),
+                                height: 1.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: 24),
+                    ],
+                    
+                    // Security Notice
+                    Container(
+                      padding: EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Color(0xFFF0F9FF),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Color(0xFFBAE6FD)),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.lock, size: 16, color: Color(0xFF0284C7)),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'การชำระเงินของคุณปลอดภัย',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF0284C7),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            
+            // Footer with Buttons
+            Container(
+              padding: EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: Offset(0, -4),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  SizedBox(
+                    width: double.infinity,
+                    height: 54,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Color(0xFF6366F1),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.check_circle, color: Colors.white),
+                          SizedBox(width: 8),
+                          Text(
+                            'ยืนยันการชำระเงิน ฿${finalAmount.toStringAsFixed(2)}',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      style: TextButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        'ยกเลิก',
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: Color(0xFF64748B),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  IconData _getPaymentMethodIcon(String method) {
+    switch (method) {
+      case 'card':
+        return Icons.credit_card;
+      case 'transfer':
+        return Icons.account_balance;
+      case 'cod':
+        return Icons.money;
+      default:
+        return Icons.payment;
+    }
+  }
+  
+  Color _getPaymentMethodColor(String method) {
+    switch (method) {
+      case 'card':
+        return Color(0xFF6366F1);
+      case 'transfer':
+        return Color(0xFF0EA5E9);
+      case 'cod':
+        return Color(0xFF10B981);
+      default:
+        return Color(0xFF64748B);
+    }
+  }
+  
+  String _getPaymentMethodName(String method) {
+    switch (method) {
+      case 'card':
+        return 'บัตรเครดิต/เดบิต';
+      case 'transfer':
+        return 'โอนเงินผ่านธนาคาร';
+      case 'cod':
+        return 'เก็บเงินปลายทาง';
+      default:
+        return 'ไม่ทราบ';
+    }
+  }
+  
+  String _getPaymentMethodDescription(String method) {
+    switch (method) {
+      case 'card':
+        return 'ชำระเงินด้วยบัตรเครดิตหรือเดบิต';
+      case 'transfer':
+        return 'โอนเงินผ่านบัญชีธนาคาร';
+      case 'cod':
+        return 'ชำระเงินเมื่อได้รับสินค้า';
+      default:
+        return '';
+    }
+  }
+
   Future<bool> _presentStripePaymentSheet({
     required String paymentIntentClientSecret,
   }) async {
@@ -606,7 +1252,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
           style: ThemeMode.system,
           appearance: stripe.PaymentSheetAppearance(
             colors: stripe.PaymentSheetAppearanceColors(
-              primary: Colors.orange,
+              primary: Color(0xFF6366F1),
             ),
           ),
         ),

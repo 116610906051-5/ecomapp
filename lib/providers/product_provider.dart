@@ -18,6 +18,17 @@ class ProductProvider with ChangeNotifier {
   String get selectedCategory => _selectedCategory;
   bool get isLoading => _isLoading;
   String get searchQuery => _searchQuery;
+  
+  // Get unique categories from products
+  List<String> get categories {
+    final categorySet = <String>{};
+    for (var product in _products) {
+      if (product.category.isNotEmpty) {
+        categorySet.add(product.category);
+      }
+    }
+    return categorySet.toList()..sort();
+  }
 
   void setLoading(bool loading) {
     _isLoading = loading;

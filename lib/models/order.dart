@@ -8,6 +8,8 @@ class Order {
   final List<OrderItem> items;
   final double subtotal;
   final double shippingFee;
+  final double discount; // ส่วนลดจากคูปอง
+  final String? couponCode; // รหัสคูปองที่ใช้
   final double totalAmount;
   final OrderStatus status;
   final PaymentMethod paymentMethod;
@@ -28,6 +30,8 @@ class Order {
     required this.items,
     required this.subtotal,
     this.shippingFee = 0.0,
+    this.discount = 0.0,
+    this.couponCode,
     required this.totalAmount,
     this.status = OrderStatus.pending,
     this.paymentMethod = PaymentMethod.creditCard,
@@ -71,6 +75,8 @@ class Order {
       'items': items.map((item) => item.toMap()).toList(),
       'subtotal': subtotal,
       'shippingFee': shippingFee,
+      'discount': discount,
+      'couponCode': couponCode,
       'totalAmount': totalAmount,
       'status': status.name,
       'paymentMethod': paymentMethod.name,
@@ -96,6 +102,8 @@ class Order {
           .toList() ?? [],
       subtotal: (map['subtotal'] ?? 0.0).toDouble(),
       shippingFee: (map['shippingFee'] ?? 0.0).toDouble(),
+      discount: (map['discount'] ?? 0.0).toDouble(),
+      couponCode: map['couponCode'],
       totalAmount: (map['totalAmount'] ?? 0.0).toDouble(),
       status: OrderStatus.values.firstWhere(
         (e) => e.name == map['status'],

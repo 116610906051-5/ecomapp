@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
-import '../debug_login.dart';
 
 class LoginPage extends StatefulWidget {
   @override
@@ -94,6 +93,129 @@ class _LoginPageState extends State<LoginPage> {
         });
       }
     }
+  }
+
+  void _showForgotPasswordDialog() {
+    final emailController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.lock_reset, color: Color(0xFF6366F1)),
+            SizedBox(width: 8),
+            Text('Reset Password'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Enter your email address and we\'ll send you a link to reset your password.',
+              style: TextStyle(
+                fontSize: 14,
+                color: Color(0xFF64748B),
+              ),
+            ),
+            SizedBox(height: 16),
+            TextField(
+              controller: emailController,
+              keyboardType: TextInputType.emailAddress,
+              decoration: InputDecoration(
+                labelText: 'Email',
+                prefixIcon: Icon(Icons.email_outlined),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Color(0xFFE2E8F0)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Color(0xFF6366F1)),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: Color(0xFF64748B)),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final email = emailController.text.trim();
+              
+              if (email.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Please enter your email'),
+                    backgroundColor: Colors.orange,
+                  ),
+                );
+                return;
+              }
+              
+              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email)) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Please enter a valid email'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return;
+              }
+              
+              Navigator.pop(context);
+              
+              try {
+                final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                await authProvider.sendPasswordResetEmail(email);
+                
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Password reset email sent! Please check your inbox.'),
+                    backgroundColor: Colors.green,
+                    duration: Duration(seconds: 5),
+                  ),
+                );
+              } catch (e) {
+                String errorMessage = 'Failed to send reset email';
+                
+                if (e.toString().contains('user-not-found')) {
+                  errorMessage = 'No account found with this email';
+                } else if (e.toString().contains('invalid-email')) {
+                  errorMessage = 'Invalid email address';
+                }
+                
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(errorMessage),
+                    backgroundColor: Colors.red,
+                    duration: Duration(seconds: 4),
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Color(0xFF6366F1),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text('Send Reset Link'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -220,9 +342,7 @@ class _LoginPageState extends State<LoginPage> {
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton(
-                        onPressed: () {
-                          // TODO: Implement forgot password
-                        },
+                        onPressed: () => _showForgotPasswordDialog(),
                         child: Text(
                           'Forgot Password?',
                           style: TextStyle(
@@ -267,139 +387,6 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                       ),
                     ),
-                    
-                    SizedBox(height: 24),
-                    
-                    // Divider
-                    Row(
-                      children: [
-                        Expanded(child: Divider(color: Color(0xFFE2E8F0))),
-                        Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 16),
-                          child: Text(
-                            'or',
-                            style: TextStyle(color: Color(0xFF64748B)),
-                          ),
-                        ),
-                        Expanded(child: Divider(color: Color(0xFFE2E8F0))),
-                      ],
-                    ),
-                    
-                    SizedBox(height: 24),
-                    
-                    // Quick Test Login Button
-                    SizedBox(
-                      width: double.infinity,
-                      height: 48,
-                      child: ElevatedButton.icon(
-                        onPressed: () async {
-                          setState(() {
-                            _emailController.text = 'test@test.com';
-                            _passwordController.text = '123456';
-                          });
-                          
-                          // สร้างบัญชีทดสอบถ้ายังไม่มี
-                          try {
-                            final authProvider = Provider.of<AuthProvider>(context, listen: false);
-                            await authProvider.createUserWithEmailAndPassword(
-                              'test@test.com',
-                              '123456',
-                              'Test User',
-                            );
-                          } catch (e) {
-                            // ถ้าบัญชีมีอยู่แล้วก็ไม่เป็นไร จะลองล็อกอินต่อ
-                            print('Test account may already exist: $e');
-                          }
-                          
-                          // ลองล็อกอิน
-                          _signIn();
-                        },
-                        icon: Icon(Icons.speed, color: Colors.white),
-                        label: Text(
-                          'Quick Test Login',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                      ),
-                    ),
-                    
-                    SizedBox(height: 16),
-                    
-                    // Debug Login Button
-                    SizedBox(
-                      width: double.infinity,
-                      height: 48,
-                      child: OutlinedButton.icon(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => DebugLoginPage(),
-                            ),
-                          );
-                        },
-                        icon: Icon(Icons.bug_report, color: Colors.orange),
-                        label: Text(
-                          'Debug Login (Developer Mode)',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.orange,
-                          ),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          side: BorderSide(color: Colors.orange),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                      ),
-                    ),
-                    
-                    SizedBox(height: 16),
-                    
-                    // Google Sign In (Optional)
-                    SizedBox(
-                      width: double.infinity,
-                      height: 56,
-                      child: OutlinedButton.icon(
-                        onPressed: () {
-                          // TODO: Implement Google Sign In
-                        },
-                        icon: Image.asset(
-                          'assets/images/google_logo.png',
-                          height: 24,
-                          width: 24,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Icon(Icons.g_mobiledata, size: 24);
-                          },
-                        ),
-                        label: Text(
-                          'Continue with Google',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF1E293B),
-                          ),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          side: BorderSide(color: Color(0xFFE2E8F0)),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          backgroundColor: Colors.white,
-                        ),
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -427,21 +414,6 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
                 ],
-              ),
-              
-              // Debug Button (เฉพาะใน Debug Mode)
-              SizedBox(height: 20),
-              TextButton(
-                onPressed: () {
-                  Navigator.pushNamed(context, '/debug');
-                },
-                child: Text(
-                  'Debug Login (Testing)',
-                  style: TextStyle(
-                    color: Colors.orange,
-                    fontSize: 12,
-                  ),
-                ),
               ),
             ],
           ),

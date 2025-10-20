@@ -361,50 +361,60 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildCategoryCard(String title, IconData icon, Color color) {
-    return Container(
-      width: 100,
-      height: 100, // กำหนดความสูงคงที่เพื่อป้องกัน overflow
-      margin: EdgeInsets.only(right: 16),
-      padding: EdgeInsets.all(12), // ลด padding จาก 16 เป็น 12
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: color.withOpacity(0.3),
-          width: 1,
+    return GestureDetector(
+      onTap: () {
+        // Navigate to products page with selected category
+        Navigator.pushNamed(
+          context,
+          '/products',
+          arguments: {'category': title},
+        );
+      },
+      child: Container(
+        width: 100,
+        height: 100, // กำหนดความสูงคงที่เพื่อป้องกัน overflow
+        margin: EdgeInsets.only(right: 16),
+        padding: EdgeInsets.all(12), // ลด padding จาก 16 เป็น 12
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: color.withOpacity(0.3),
+            width: 1,
+          ),
         ),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min, // ใช้พื้นที่เท่าที่จำเป็น
-        children: [
-          Container(
-            padding: EdgeInsets.all(8), // ลด padding จาก 12 เป็น 8
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(
-              icon,
-              color: Colors.white,
-              size: 20, // ลดขนาด icon จาก 24 เป็น 20
-            ),
-          ),
-          SizedBox(height: 8), // ลดจาก 12 เป็น 8
-          Flexible( // ใช้ Flexible แทน Text ธรรมดา
-            child: Text(
-              title,
-              style: TextStyle(
-                fontSize: 11, // ลดขนาดตัวอักษรจาก 12 เป็น 11
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF1E293B),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min, // ใช้พื้นที่เท่าที่จำเป็น
+          children: [
+            Container(
+              padding: EdgeInsets.all(8), // ลด padding จาก 12 เป็น 8
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(10),
               ),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+              child: Icon(
+                icon,
+                color: Colors.white,
+                size: 20, // ลดขนาด icon จาก 24 เป็น 20
+              ),
             ),
-          ),
-        ],
+            SizedBox(height: 8), // ลดจาก 12 เป็น 8
+            Flexible( // ใช้ Flexible แทน Text ธรรมดา
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontSize: 11, // ลดขนาดตัวอักษรจาก 12 เป็น 11
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1E293B),
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

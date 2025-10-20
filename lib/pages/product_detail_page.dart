@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../models/product.dart';
 import '../providers/cart_provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/wishlist_provider.dart';
 
 class ProductDetailPage extends StatefulWidget {
   @override
@@ -79,6 +80,55 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           product.name,
           style: TextStyle(color: Color(0xFF1E293B)),
         ),
+        actions: [
+          Consumer2<AuthProvider, WishlistProvider>(
+            builder: (context, authProvider, wishlistProvider, child) {
+              final isInWishlist = wishlistProvider.isInWishlist(product.id);
+              
+              return IconButton(
+                onPressed: () async {
+                  if (authProvider.user != null) {
+                    try {
+                      await wishlistProvider.toggleWishlist(
+                        authProvider.user!.uid,
+                        product,
+                      );
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            isInWishlist 
+                              ? 'ลบออกจากรายการโปรดแล้ว' 
+                              : 'เพิ่มลงรายการโปรดแล้ว'
+                          ),
+                          backgroundColor: isInWishlist ? Colors.orange : Colors.green,
+                          duration: Duration(seconds: 1),
+                        ),
+                      );
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('เกิดข้อผิดพลาด: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('กรุณาเข้าสู่ระบบก่อน'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                },
+                icon: Icon(
+                  isInWishlist ? Icons.favorite : Icons.favorite_border,
+                  color: isInWishlist ? Colors.red : Color(0xFF1E293B),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Column(

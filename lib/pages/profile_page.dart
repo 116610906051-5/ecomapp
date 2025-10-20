@@ -222,12 +222,6 @@ class ProfilePage extends StatelessWidget {
                     'Manage your delivery addresses',
                     () => Navigator.pushNamed(context, '/addresses'),
                   ),
-                  _buildMenuItem(
-                    Icons.credit_card_outlined,
-                    'Payment Methods',
-                    'Add or remove payment methods',
-                    () => _showComingSoon(context),
-                  ),
 
                   SizedBox(height: 24),
 
@@ -258,12 +252,6 @@ class ProfilePage extends StatelessWidget {
                   // Support Section
                   _buildSectionHeader('Support'),
                   SizedBox(height: 12),
-                  _buildMenuItem(
-                    Icons.help_outline,
-                    'Help Center',
-                    'Get help with your orders and account',
-                    () => _showComingSoon(context),
-                  ),
                   Consumer<AuthProvider>(
                     builder: (context, authProvider, child) {
                       return _buildMenuItem(
@@ -286,12 +274,6 @@ class ProfilePage extends StatelessWidget {
                     'My Contacts',
                     'View your contact history',
                     () => Navigator.pushNamed(context, '/my-contacts'),
-                  ),
-                  _buildMenuItem(
-                    Icons.star_outline,
-                    'Rate Our App',
-                    'Share your experience with others',
-                    () => _showComingSoon(context),
                   ),
 
                   SizedBox(height: 24),
@@ -334,18 +316,6 @@ class ProfilePage extends StatelessWidget {
                     'Notifications',
                     'Manage your notification preferences',
                     () => _showNotificationSettings(context),
-                  ),
-                  _buildMenuItem(
-                    Icons.language_outlined,
-                    'Language',
-                    'Change your app language',
-                    () => _showComingSoon(context),
-                  ),
-                  _buildMenuItem(
-                    Icons.security_outlined,
-                    'Privacy & Security',
-                    'Manage your privacy settings',
-                    () => _showComingSoon(context),
                   ),
                   _buildMenuItem(
                     Icons.info_outline,
@@ -528,22 +498,6 @@ class ProfilePage extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  void _showComingSoon(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Coming Soon'),
-        content: Text('This feature will be available in the next update.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('OK'),
-          ),
-        ],
       ),
     );
   }

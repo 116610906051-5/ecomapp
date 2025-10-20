@@ -248,6 +248,11 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  // Alias for resetPassword
+  Future<void> sendPasswordResetEmail(String email) async {
+    return resetPassword(email);
+  }
+
   Future<void> updateProfile({
     String? displayName,
     String? photoURL,
