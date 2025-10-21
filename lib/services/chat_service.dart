@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:io';
 import '../models/chat.dart';
 import 'notification_service.dart';
+import 'cloudinary_service.dart';
 
 class ChatService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -149,6 +151,50 @@ class ChatService {
     } catch (e) {
       print('❌ Error sending message: $e');
       throw Exception('Failed to send message: $e');
+    }
+  }
+
+  // ส่งข้อความพร้อมรูปภาพ
+  static Future<void> sendImageMessage({
+    required String chatRoomId,
+    required String senderId,
+    required String senderName,
+    required String senderRole,
+    required String imagePath,
+  }) async {
+    try {
+      // Upload image to Cloudinary
+      final file = File(imagePath);
+      final fileName = 'chat_${chatRoomId}_${DateTime.now().millisecondsSinceEpoch}';
+      
+      print('🔄 กำลังอัพโหลดรูปภาพแชทไปยัง Cloudinary...');
+      
+      final String? imageUrl = await CloudinaryService.uploadChatImage(
+        file, 
+        fileName: fileName
+      );
+      
+      if (imageUrl == null) {
+        throw Exception('ไม่สามารถอัพโหลดรูปภาพได้');
+      }
+      
+      print('✅ อัพโหลดรูปภาพแชทสำเร็จ: $imageUrl');
+
+      // Send message with image URL
+      await sendMessage(
+        chatRoomId: chatRoomId,
+        senderId: senderId,
+        senderName: senderName,
+        senderRole: senderRole,
+        message: '📷 ส่งรูปภาพ',
+        type: ChatMessageType.image,
+        imageUrl: imageUrl,
+      );
+
+      print('✅ Image message sent to room $chatRoomId');
+    } catch (e) {
+      print('❌ Error sending image message: $e');
+      throw Exception('Failed to send image message: $e');
     }
   }
 

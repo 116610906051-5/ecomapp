@@ -345,12 +345,22 @@ class _AddAddressPageState extends State<AddAddressPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              widget.address != null
-                  ? 'แก้ไขที่อยู่สำเร็จ'
-                  : 'เพิ่มที่อยู่สำเร็จ',
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white),
+                SizedBox(width: 12),
+                Text(
+                  widget.address != null
+                      ? 'แก้ไขที่อยู่สำเร็จ'
+                      : 'เพิ่มที่อยู่สำเร็จ',
+                ),
+              ],
             ),
             backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
         );
         Navigator.pop(context);
@@ -359,8 +369,18 @@ class _AddAddressPageState extends State<AddAddressPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('เกิดข้อผิดพลาด: $e'),
+            content: Row(
+              children: [
+                Icon(Icons.error, color: Colors.white),
+                SizedBox(width: 12),
+                Expanded(child: Text('เกิดข้อผิดพลาด: $e')),
+              ],
+            ),
             backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
         );
       }

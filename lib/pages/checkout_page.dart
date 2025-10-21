@@ -496,22 +496,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
                           RadioListTile<String>(
                             title: Row(
                               children: [
-                                Icon(Icons.account_balance, color: Colors.green),
-                                SizedBox(width: 8),
-                                Text('โอนเงินผ่านธนาคาร'),
-                              ],
-                            ),
-                            value: 'transfer',
-                            groupValue: _selectedPaymentMethod,
-                            onChanged: (value) {
-                              setState(() {
-                                _selectedPaymentMethod = value!;
-                              });
-                            },
-                          ),
-                          RadioListTile<String>(
-                            title: Row(
-                              children: [
                                 Icon(Icons.money, color: Colors.orange),
                                 SizedBox(width: 8),
                                 Text('เก็บเงินปลายทาง'),
@@ -684,9 +668,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
         case 'card':
           paymentMethod = PaymentMethod.creditCard;
           break;
-        case 'transfer':
-          paymentMethod = PaymentMethod.bankTransfer;
-          break;
         case 'cod':
           paymentMethod = PaymentMethod.cod;
           break;
@@ -722,10 +703,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
           );
           
           if (paymentResult) {
-            // Payment successful
+            // Payment successful - set to packing status
             await OrderService.updatePaymentStatus(
               orderId: order.id,
-              status: OrderStatus.paid,
+              status: OrderStatus.packing,
               paymentIntentId: paymentIntent['id'],
             );
             print('✅ Stripe payment completed successfully');
@@ -742,14 +723,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
           );
           rethrow;
         }
-      } else if (_selectedPaymentMethod == 'transfer') {
-        // Bank transfer - keep as pending
-        // Order status is already pending by default
       } else if (_selectedPaymentMethod == 'cod') {
-        // COD - mark as processing
+        // COD - set to packing status
         await OrderService.updateOrderStatus(
           orderId: order.id,
-          status: OrderStatus.processing,
+          status: OrderStatus.packing,
         );
       }
 

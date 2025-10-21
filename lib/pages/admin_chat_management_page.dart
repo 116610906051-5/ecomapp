@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:async';
+import 'package:image_picker/image_picker.dart';
 import '../models/chat.dart';
 import '../services/chat_service.dart';
 import '../providers/auth_provider.dart';
@@ -1121,6 +1122,84 @@ class _AdminChatRoomPageState extends State<AdminChatRoomPage> {
     }
   }
 
+  Future<void> _pickAndSendImage() async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1920,
+        maxHeight: 1920,
+        imageQuality: 85,
+      );
+
+      if (image == null) return;
+
+      // Show loading
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              ),
+              SizedBox(width: 12),
+              Text('กำลังส่งรูปภาพ...'),
+            ],
+          ),
+          duration: Duration(seconds: 30),
+        ),
+      );
+
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final user = authProvider.currentUser;
+      final firebaseUser = authProvider.user;
+
+      final senderId = user?.id ?? firebaseUser?.uid ?? '';
+      final senderName = user?.displayName ?? user?.name ?? firebaseUser?.displayName ?? 'Admin';
+
+      await ChatService.sendImageMessage(
+        chatRoomId: widget.chatRoom.id,
+        senderId: senderId,
+        senderName: senderName,
+        senderRole: 'admin',
+        imagePath: image.path,
+      );
+
+      _scrollToBottom();
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.white),
+              SizedBox(width: 12),
+              Text('ส่งรูปภาพสำเร็จ'),
+            ],
+          ),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('ไม่สามารถส่งรูปภาพได้: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   void _scrollToBottom() {
     if (_scrollController.hasClients) {
       _scrollController.animateTo(
@@ -1249,6 +1328,21 @@ class _AdminChatRoomPageState extends State<AdminChatRoomPage> {
             ),
             child: Row(
               children: [
+                Container(
+                  decoration: BoxDecoration(
+                    color: Color(0xFFF1F5F9),
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    onPressed: _pickAndSendImage,
+                    icon: Icon(
+                      Icons.image,
+                      color: Color(0xFF6366F1),
+                      size: 24,
+                    ),
+                  ),
+                ),
+                SizedBox(width: 8),
                 Expanded(
                   child: Container(
                     decoration: BoxDecoration(

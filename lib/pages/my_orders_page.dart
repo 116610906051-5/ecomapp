@@ -92,43 +92,40 @@ class MyOrdersPage extends StatelessWidget {
     // กำหนดสีและไอคอนตามสถานะ
     Color statusColor;
     IconData statusIcon;
-    String statusText;
 
     switch (order.status) {
       case OrderStatus.pending:
         statusColor = Colors.orange;
         statusIcon = Icons.pending;
-        statusText = 'รอดำเนินการ';
         break;
       case OrderStatus.paid:
         statusColor = Colors.blue;
         statusIcon = Icons.payment;
-        statusText = 'ชำระเงินแล้ว';
+        break;
+      case OrderStatus.packing:
+        statusColor = Colors.purple;
+        statusIcon = Icons.inventory_2;
         break;
       case OrderStatus.processing:
-        statusColor = Colors.purple;
+        statusColor = Colors.amber;
         statusIcon = Icons.settings;
-        statusText = 'กำลังจัดเตรียม';
         break;
       case OrderStatus.shipped:
-        statusColor = Colors.teal;
+        statusColor = Colors.indigo;
         statusIcon = Icons.local_shipping;
-        statusText = 'กำลังจัดส่ง';
         break;
       case OrderStatus.delivered:
         statusColor = Colors.green;
         statusIcon = Icons.check_circle;
-        statusText = 'จัดส่งสำเร็จ';
         break;
       case OrderStatus.cancelled:
         statusColor = Colors.red;
         statusIcon = Icons.cancel;
-        statusText = 'ยกเลิก';
         break;
-      default:
+      case OrderStatus.refunded:
         statusColor = Colors.grey;
-        statusIcon = Icons.help;
-        statusText = 'ไม่ทราบสถานะ';
+        statusIcon = Icons.money_off;
+        break;
     }
 
     return Card(
@@ -176,7 +173,7 @@ class MyOrdersPage extends StatelessWidget {
                         Icon(statusIcon, size: 16, color: statusColor),
                         SizedBox(width: 4),
                         Text(
-                          statusText,
+                          order.statusText,
                           style: TextStyle(
                             color: statusColor,
                             fontWeight: FontWeight.bold,
@@ -332,12 +329,30 @@ class MyOrdersPage extends StatelessWidget {
                   ),
                   SizedBox(height: 20),
                   
-                  // สถานะ
-                  _buildDetailSection(
-                    'สถานะคำสั่งซื้อ',
-                    _getStatusText(order.status),
-                    Icons.info_outline,
+                  // Status Progress Timeline
+                  Container(
+                    padding: EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey[200]!),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'สถานะคำสั่งซื้อ',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(height: 16),
+                        _buildOrderStatusTimeline(order),
+                      ],
+                    ),
                   ),
+                  SizedBox(height: 20),
                   
                   // วันที่สั่งซื้อ
                   _buildDetailSection(
@@ -518,23 +533,98 @@ class MyOrdersPage extends StatelessWidget {
     );
   }
 
-  String _getStatusText(OrderStatus status) {
-    switch (status) {
-      case OrderStatus.pending:
-        return 'รอดำเนินการ';
-      case OrderStatus.paid:
-        return 'ชำระเงินแล้ว';
-      case OrderStatus.processing:
-        return 'กำลังจัดเตรียม';
-      case OrderStatus.shipped:
-        return 'กำลังจัดส่ง';
-      case OrderStatus.delivered:
-        return 'จัดส่งสำเร็จ';
-      case OrderStatus.cancelled:
-        return 'ยกเลิก';
-      default:
-        return 'ไม่ทราบสถานะ';
+  Widget _buildOrderStatusTimeline(Order order) {
+    // Define order status progression
+    final statuses = [
+      {'status': OrderStatus.pending, 'label': 'รอชำระเงิน', 'icon': Icons.pending},
+      {'status': OrderStatus.packing, 'label': 'กำลังแพคสินค้า', 'icon': Icons.inventory_2},
+      {'status': OrderStatus.processing, 'label': 'กำลังเตรียมสินค้า', 'icon': Icons.settings},
+      {'status': OrderStatus.shipped, 'label': 'กำลังจัดส่งสินค้า', 'icon': Icons.local_shipping},
+      {'status': OrderStatus.delivered, 'label': 'สินค้าจัดส่งเรียบร้อย', 'icon': Icons.check_circle},
+    ];
+
+    // Find current status index
+    int currentStatusIndex = statuses.indexWhere((s) => s['status'] == order.status);
+    
+    // Handle cancelled and refunded separately
+    if (order.status == OrderStatus.cancelled || order.status == OrderStatus.refunded) {
+      return Row(
+        children: [
+          Icon(
+            order.status == OrderStatus.cancelled ? Icons.cancel : Icons.money_off,
+            color: Colors.red,
+            size: 32,
+          ),
+          SizedBox(width: 12),
+          Text(
+            order.statusText,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.red,
+            ),
+          ),
+        ],
+      );
     }
+
+    return Column(
+      children: List.generate(statuses.length, (index) {
+        final status = statuses[index];
+        final isCompleted = index <= currentStatusIndex;
+        final isCurrent = index == currentStatusIndex;
+        
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Status indicator
+            Column(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: isCompleted ? Color(0xFF6366F1) : Colors.grey[300],
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    status['icon'] as IconData,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+                if (index < statuses.length - 1)
+                  Container(
+                    width: 2,
+                    height: 40,
+                    color: isCompleted ? Color(0xFF6366F1) : Colors.grey[300],
+                  ),
+              ],
+            ),
+            SizedBox(width: 16),
+            // Status text
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.only(top: 8, bottom: 16),
+                child: Text(
+                  status['label'] as String,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+                    color: isCompleted ? Color(0xFF1E293B) : Colors.grey[500],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      }),
+    );
+  }
+
+  String _getStatusText(OrderStatus status) {
+    // Keep this method for compatibility
+    return status.toString().split('.').last;
   }
 
   Widget _buildEmptyState(BuildContext context) {

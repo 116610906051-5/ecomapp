@@ -317,7 +317,13 @@ class _CartPageState extends State<CartPage> {
                       // ปุ่มลดจำนวน
                       GestureDetector(
                         onTap: () {
-                          cartProvider.decreaseQuantity(item.id);
+                          if (item.quantity == 1) {
+                            // ถ้าจำนวนเหลือ 1 แล้วกดลบอีก ให้แสดงการยืนยัน
+                            _showDeleteConfirmation(context, item, cartProvider);
+                          } else {
+                            // ถ้ามีมากกว่า 1 ก็ลดจำนวนได้เลย
+                            cartProvider.decreaseQuantity(item.id);
+                          }
                         },
                         child: Container(
                           width: 36,
@@ -585,23 +591,139 @@ class _CartPageState extends State<CartPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('ยืนยันการลบ'),
-          content: Text('คุณต้องการลบ "${item.productName}" ออกจากตะกร้าหรือไม่?'),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.delete_outline, color: Colors.red, size: 28),
+              SizedBox(width: 12),
+              Text('ยืนยันการลบสินค้า'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'คุณต้องการลบสินค้านี้ออกจากตะกร้าหรือไม่?',
+                style: TextStyle(fontSize: 16),
+              ),
+              SizedBox(height: 12),
+              Container(
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: Image.network(
+                        item.productImage,
+                        width: 50,
+                        height: 50,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            width: 50,
+                            height: 50,
+                            color: Colors.grey[300],
+                            child: Icon(Icons.image, color: Colors.grey),
+                          );
+                        },
+                      ),
+                    ),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item.productName,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            'จำนวน: ${item.quantity}',
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: Text('ยกเลิก'),
-            ),
-            TextButton(
-              onPressed: () {
-                cartProvider.removeFromCart(item.id);
-                Navigator.of(context).pop();
-              },
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
               child: Text(
-                'ลบ',
-                style: TextStyle(color: Colors.red),
+                'ยกเลิก',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey[700],
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                // ปิด dialog ก่อน
+                Navigator.of(context).pop();
+                
+                // รอให้ dialog ปิดสนิท
+                await Future.delayed(Duration(milliseconds: 100));
+                
+                // แล้วค่อยลบสินค้า
+                cartProvider.removeFromCart(item.id);
+                
+                // แสดง SnackBar หลังจากลบเสร็จ
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Row(
+                        children: [
+                          Icon(Icons.check_circle, color: Colors.white),
+                          SizedBox(width: 12),
+                          Text('ลบสินค้าออกจากตะกร้าแล้ว'),
+                        ],
+                      ),
+                      backgroundColor: Colors.green,
+                      duration: Duration(seconds: 2),
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: Text(
+                'ลบออก',
+                style: TextStyle(fontSize: 16),
               ),
             ),
           ],
@@ -615,23 +737,109 @@ class _CartPageState extends State<CartPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('ยืนยันการล้างตะกร้า'),
-          content: Text('คุณต้องการลบสินค้าทั้งหมดออกจากตะกร้าหรือไม่?'),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.delete_sweep, color: Colors.red, size: 28),
+              SizedBox(width: 12),
+              Text('ยืนยันการล้างตะกร้า'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'คุณต้องการลบสินค้าทั้งหมดออกจากตะกร้าหรือไม่?',
+                style: TextStyle(fontSize: 16),
+              ),
+              SizedBox(height: 12),
+              Container(
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.red[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.red[200]!),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.warning_amber_rounded, color: Colors.red[700], size: 24),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'จะลบสินค้าทั้งหมด ${cartProvider.cartItems.length} รายการ',
+                        style: TextStyle(
+                          color: Colors.red[900],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: Text('ยกเลิก'),
-            ),
-            TextButton(
-              onPressed: () {
-                cartProvider.clearCart();
-                Navigator.of(context).pop();
-              },
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
               child: Text(
-                'ล้างตะกร้า',
-                style: TextStyle(color: Colors.red),
+                'ยกเลิก',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey[700],
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                // ปิด dialog ก่อน
+                Navigator.of(context).pop();
+                
+                // รอให้ dialog ปิดสนิท
+                await Future.delayed(Duration(milliseconds: 100));
+                
+                // แล้วค่อยล้างตะกร้า
+                cartProvider.clearCart();
+                
+                // แสดง SnackBar
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Row(
+                        children: [
+                          Icon(Icons.check_circle, color: Colors.white),
+                          SizedBox(width: 12),
+                          Text('ล้างตะกร้าเรียบร้อยแล้ว'),
+                        ],
+                      ),
+                      backgroundColor: Colors.green,
+                      duration: Duration(seconds: 2),
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: Text(
+                'ล้างทั้งหมด',
+                style: TextStyle(fontSize: 16),
               ),
             ),
           ],

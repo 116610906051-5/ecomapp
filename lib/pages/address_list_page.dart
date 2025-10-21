@@ -64,12 +64,14 @@ class _AddressListPageState extends State<AddressListPage> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => AddAddressPage(),
-            ),
-          );
+          if (mounted) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => AddAddressPage(),
+              ),
+            );
+          }
         },
         icon: Icon(Icons.add),
         label: Text('เพิ่มที่อยู่ใหม่'),
@@ -123,7 +125,9 @@ class _AddressListPageState extends State<AddressListPage> {
       child: InkWell(
         onTap: widget.isSelectionMode
             ? () {
-                Navigator.pop(context, address);
+                if (mounted) {
+                  Navigator.pop(context, address);
+                }
               }
             : null,
         borderRadius: BorderRadius.circular(12),
@@ -168,56 +172,6 @@ class _AddressListPageState extends State<AddressListPage> {
                       ],
                     ),
                   ),
-                  PopupMenuButton<String>(
-                    onSelected: (value) {
-                      if (value == 'edit') {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                AddAddressPage(address: address),
-                          ),
-                        );
-                      } else if (value == 'delete') {
-                        _showDeleteConfirmation(address);
-                      } else if (value == 'default') {
-                        _setAsDefault(userId, address.id);
-                      }
-                    },
-                    itemBuilder: (context) => [
-                      PopupMenuItem(
-                        value: 'edit',
-                        child: Row(
-                          children: [
-                            Icon(Icons.edit, size: 20),
-                            SizedBox(width: 8),
-                            Text('แก้ไข'),
-                          ],
-                        ),
-                      ),
-                      if (!address.isDefault)
-                        PopupMenuItem(
-                          value: 'default',
-                          child: Row(
-                            children: [
-                              Icon(Icons.check_circle, size: 20),
-                              SizedBox(width: 8),
-                              Text('ตั้งเป็นค่าเริ่มต้น'),
-                            ],
-                          ),
-                        ),
-                      PopupMenuItem(
-                        value: 'delete',
-                        child: Row(
-                          children: [
-                            Icon(Icons.delete, size: 20, color: Colors.red),
-                            SizedBox(width: 8),
-                            Text('ลบ', style: TextStyle(color: Colors.red)),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
                 ],
               ),
               SizedBox(height: 8),
@@ -252,6 +206,61 @@ class _AddressListPageState extends State<AddressListPage> {
                   ),
                 ],
               ),
+              SizedBox(height: 12),
+              Row(
+                children: [
+                  if (!address.isDefault)
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          _setAsDefault(userId, address.id);
+                        },
+                        icon: Icon(Icons.check_circle, size: 18),
+                        label: Text('ตั้งเป็นค่าเริ่มต้น'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Color(0xFF6366F1),
+                          side: BorderSide(color: Color(0xFF6366F1)),
+                          padding: EdgeInsets.symmetric(vertical: 8),
+                        ),
+                      ),
+                    ),
+                  if (!address.isDefault) SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => AddAddressPage(address: address),
+                          ),
+                        );
+                      },
+                      icon: Icon(Icons.edit, size: 18),
+                      label: Text('แก้ไข'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.grey[700],
+                        side: BorderSide(color: Colors.grey[400]!),
+                        padding: EdgeInsets.symmetric(vertical: 8),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        _showDeleteConfirmation(address);
+                      },
+                      icon: Icon(Icons.delete, size: 18),
+                      label: Text('ลบ'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.red,
+                        side: BorderSide(color: Colors.red),
+                        padding: EdgeInsets.symmetric(vertical: 8),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
@@ -260,58 +269,197 @@ class _AddressListPageState extends State<AddressListPage> {
   }
 
   void _setAsDefault(String userId, String addressId) async {
+    if (!mounted) return;
+    
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    
     try {
       await _addressService.setDefaultAddress(userId, addressId);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('ตั้งค่าที่อยู่เริ่มต้นสำเร็จ'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      
+      if (mounted) {
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white),
+                SizedBox(width: 12),
+                Text('ตั้งค่าที่อยู่เริ่มต้นสำเร็จ'),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('เกิดข้อผิดพลาด: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.error, color: Colors.white),
+                SizedBox(width: 12),
+                Expanded(child: Text('เกิดข้อผิดพลาด: $e')),
+              ],
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+      }
     }
   }
 
   void _showDeleteConfirmation(Address address) {
+    if (!mounted) return;
+    
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('ยืนยันการลบ'),
-        content: Text('คุณต้องการลบที่อยู่นี้ใช่หรือไม่?'),
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Row(
+          children: [
+            Icon(Icons.delete_outline, color: Colors.red, size: 28),
+            SizedBox(width: 12),
+            Text('ยืนยันการลบที่อยู่'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'คุณต้องการลบที่อยู่นี้ใช่หรือไม่?',
+              style: TextStyle(fontSize: 16),
+            ),
+            SizedBox(height: 12),
+            Container(
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    address.fullName,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    address.phoneNumber,
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 13,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    address.fullAddress,
+                    style: TextStyle(
+                      color: Colors.grey[700],
+                      fontSize: 13,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('ยกเลิก'),
+            onPressed: () => navigator.pop(),
+            style: TextButton.styleFrom(
+              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
+            child: Text(
+              'ยกเลิก',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey[700],
+              ),
+            ),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () async {
-              Navigator.pop(context);
+              // ปิด dialog ก่อน
+              navigator.pop();
+              
+              // รอให้ dialog ปิดสนิท
+              await Future.delayed(Duration(milliseconds: 100));
+              
               try {
+                // ลบที่อยู่
                 await _addressService.deleteAddress(address.id);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('ลบที่อยู่สำเร็จ'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
+                
+                // แสดง SnackBar หลังลบสำเร็จ
+                if (mounted) {
+                  scaffoldMessenger.showSnackBar(
+                    SnackBar(
+                      content: Row(
+                        children: [
+                          Icon(Icons.check_circle, color: Colors.white),
+                          SizedBox(width: 12),
+                          Text('ลบที่อยู่สำเร็จ'),
+                        ],
+                      ),
+                      backgroundColor: Colors.green,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  );
+                }
               } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('เกิดข้อผิดพลาด: $e'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
+                if (mounted) {
+                  scaffoldMessenger.showSnackBar(
+                    SnackBar(
+                      content: Row(
+                        children: [
+                          Icon(Icons.error, color: Colors.white),
+                          SizedBox(width: 12),
+                          Expanded(child: Text('เกิดข้อผิดพลาด: $e')),
+                        ],
+                      ),
+                      backgroundColor: Colors.red,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  );
+                }
               }
             },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
             child: Text(
-              'ลบ',
-              style: TextStyle(color: Colors.red),
+              'ลบที่อยู่',
+              style: TextStyle(fontSize: 16),
             ),
           ),
         ],

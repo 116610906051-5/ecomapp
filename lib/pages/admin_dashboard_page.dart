@@ -11,6 +11,7 @@ import '../services/product_service.dart';
 import 'add_product_page.dart';
 import 'edit_product_page.dart';
 import 'admin_coupon_management_page.dart';
+import 'admin_order_management_page.dart';
 
 class AdminDashboardPage extends StatefulWidget {
   @override
@@ -395,20 +396,49 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       children: [
         Container(
           padding: EdgeInsets.all(20),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.shopping_cart, color: Color(0xFF6366F1)),
-              SizedBox(width: 12),
-              Text(
-                'การจัดการคำสั่งซื้อ',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1E293B),
+              Row(
+                children: [
+                  Icon(Icons.shopping_cart, color: Color(0xFF6366F1)),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'การจัดการคำสั่งซื้อ',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1E293B),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AdminOrderManagementPage(),
+                      ),
+                    );
+                  },
+                  icon: Icon(Icons.manage_accounts, size: 18),
+                  label: Text('จัดการคำสั่งซื้อทั้งหมด'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF6366F1),
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
                 ),
               ),
-              Spacer(),
-              Icon(Icons.refresh, color: Colors.grey),
             ],
           ),
         ),
@@ -585,8 +615,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         return Colors.orange;
       case OrderStatus.paid:
         return Colors.blue;
-      case OrderStatus.processing:
+      case OrderStatus.packing:
         return Colors.purple;
+      case OrderStatus.processing:
+        return Colors.amber;
       case OrderStatus.shipped:
         return Colors.indigo;
       case OrderStatus.delivered:

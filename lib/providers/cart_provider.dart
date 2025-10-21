@@ -124,9 +124,9 @@ class CartProvider with ChangeNotifier {
     final item = cartItems.firstWhere((item) => item.id == itemId);
     if (item.quantity > 1) {
       updateQuantity(itemId, item.quantity - 1);
-    } else {
-      removeFromCart(itemId);
     }
+    // ถ้าจำนวนเหลือ 1 แล้วกดลบอีก ให้ UI จัดการการยืนยันแทน
+    // ไม่ลบอัตโนมัติ
   }
 
   bool isInCart(String productId, String? color, String? size) {

@@ -51,12 +51,14 @@ class Order {
         return 'รอการชำระเงิน';
       case OrderStatus.paid:
         return 'ชำระเงินแล้ว';
+      case OrderStatus.packing:
+        return 'กำลังแพคสินค้า';
       case OrderStatus.processing:
-        return 'กำลังจัดเตรียม';
+        return 'กำลังเตรียมสินค้า';
       case OrderStatus.shipped:
-        return 'จัดส่งแล้ว';
+        return 'กำลังจัดส่งสินค้า';
       case OrderStatus.delivered:
-        return 'ส่งแล้ว';
+        return 'สินค้าจัดส่งเรียบร้อย';
       case OrderStatus.cancelled:
         return 'ยกเลิกแล้ว';
       case OrderStatus.refunded:
@@ -262,13 +264,14 @@ class ShippingAddress {
 }
 
 enum OrderStatus {
-  pending,
-  paid,
-  processing,
-  shipped,
-  delivered,
-  cancelled,
-  refunded,
+  pending,      // รอการชำระเงิน
+  paid,         // ชำระเงินแล้ว
+  packing,      // กำลังแพคสินค้า (สถานะใหม่)
+  processing,   // กำลังเตรียมสินค้า
+  shipped,      // กำลังจัดส่งสินค้า
+  delivered,    // สินค้าจัดส่งเรียบร้อย
+  cancelled,    // ยกเลิกแล้ว
+  refunded,     // คืนเงินแล้ว
 }
 
 enum PaymentMethod {
