@@ -33,6 +33,7 @@
 - **Firebase Authentication** - ระบบยืนยันตัวตน
 - **Cloud Firestore** - NoSQL Database แบบเรียลไทม์
 - **Firebase Storage** - จัดเก็บไฟล์
+- **Cloudinary** - จัดเก็บไฟล์รูปภาพ
 
 ### Payment & Services
 - **Stripe** - ระบบชำระเงินออนไลน์
