@@ -1,9 +1,161 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 import '../providers/auth_provider.dart';
+import '../services/cloudinary_service.dart';
 import '../widgets/notification_badge.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  bool _isUploadingImage = false;
+
+  Future<void> _pickAndUploadProfileImage(BuildContext context) async {
+    // แสดง dialog ให้เลือกว่าจะถ่ายรูปหรือเลือกจากแกลเลอรี่
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        padding: EdgeInsets.symmetric(vertical: 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            SizedBox(height: 20),
+            Text(
+              'เลือกรูปโปรไฟล์',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: 20),
+            ListTile(
+              leading: Container(
+                padding: EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Color(0xFF6366F1).withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.camera_alt, color: Color(0xFF6366F1)),
+              ),
+              title: Text('ถ่ายรูป'),
+              onTap: () => Navigator.pop(context, ImageSource.camera),
+            ),
+            ListTile(
+              leading: Container(
+                padding: EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Color(0xFF10B981).withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.photo_library, color: Color(0xFF10B981)),
+              ),
+              title: Text('เลือกจากแกลเลอรี่'),
+              onTap: () => Navigator.pop(context, ImageSource.gallery),
+            ),
+            SizedBox(height: 10),
+          ],
+        ),
+      ),
+    );
+
+    if (source == null) return;
+
+    try {
+      // เลือกรูปภาพ
+      final picker = ImagePicker();
+      final pickedFile = await picker.pickImage(
+        source: source,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+
+      if (pickedFile == null) {
+        return; // ผู้ใช้ยกเลิกการเลือกรูป
+      }
+
+      setState(() {
+        _isUploadingImage = true;
+      });
+
+      final imageFile = File(pickedFile.path);
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final userId = authProvider.currentUser?.id;
+
+      if (userId == null) {
+        throw Exception('ไม่พบข้อมูลผู้ใช้');
+      }
+
+      // อัปโหลดรูปภาพไปยัง Cloudinary
+      final imageUrl = await CloudinaryService.uploadProfileImage(imageFile, userId);
+
+      if (imageUrl != null) {
+        // อัปเดตข้อมูลโปรไฟล์
+        await authProvider.updateUserProfile(profileImageUrl: imageUrl);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  Icon(Icons.check_circle, color: Colors.white),
+                  SizedBox(width: 12),
+                  Text('อัปโหลดรูปโปรไฟล์สำเร็จ'),
+                ],
+              ),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      } else {
+        throw Exception('ไม่สามารถอัปโหลดรูปภาพได้');
+      }
+    } catch (e) {
+      print('❌ Error uploading profile image: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.error, color: Colors.white),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text('เกิดข้อผิดพลาด: ${e.toString()}'),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploadingImage = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -24,45 +176,72 @@ class ProfilePage extends StatelessWidget {
               child: Column(
                 children: [
                   // Profile Image and Edit Button
-                  Stack(
-                    children: [
-                      Container(
-                        width: 100,
-                        height: 100,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 3),
-                        ),
-                        child: Icon(
-                          Icons.person,
-                          size: 50,
-                          color: Colors.white,
-                        ),
-                      ),
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: Container(
-                          padding: EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.2),
-                                blurRadius: 8,
+                  Consumer<AuthProvider>(
+                    builder: (context, authProvider, child) {
+                      final user = authProvider.currentUser;
+                      final profileImageUrl = user?.profileImageUrl ?? user?.photoURL;
+                      
+                      return Stack(
+                        children: [
+                          GestureDetector(
+                            onTap: () => _pickAndUploadProfileImage(context),
+                            child: Container(
+                              width: 100,
+                              height: 100,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 3),
+                                image: profileImageUrl != null
+                                    ? DecorationImage(
+                                        image: NetworkImage(profileImageUrl),
+                                        fit: BoxFit.cover,
+                                      )
+                                    : null,
                               ),
-                            ],
+                              child: _isUploadingImage
+                                  ? Center(
+                                      child: CircularProgressIndicator(
+                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                      ),
+                                    )
+                                  : profileImageUrl == null
+                                      ? Icon(
+                                          Icons.person,
+                                          size: 50,
+                                          color: Colors.white,
+                                        )
+                                      : null,
+                            ),
                           ),
-                          child: Icon(
-                            Icons.camera_alt,
-                            size: 16,
-                            color: Color(0xFF6366F1),
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: GestureDetector(
+                              onTap: () => _pickAndUploadProfileImage(context),
+                              child: Container(
+                                padding: EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.2),
+                                      blurRadius: 8,
+                                    ),
+                                  ],
+                                ),
+                                child: Icon(
+                                  Icons.camera_alt,
+                                  size: 16,
+                                  color: Color(0xFF6366F1),
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                    ],
+                        ],
+                      );
+                    },
                   ),
                   SizedBox(height: 16),
                   Consumer<AuthProvider>(
@@ -286,7 +465,8 @@ class ProfilePage extends StatelessWidget {
                   Consumer<AuthProvider>(
                     builder: (context, authProvider, child) {
                       final user = authProvider.currentUser;
-                      if (user != null && _isAdmin(user.email)) {
+                      // เช็คจาก role ใน Firestore แทนการใช้ hardcoded email list
+                      if (user?.role == 'admin') {
                         return Column(
                           children: [
                             _buildMenuItem(
@@ -693,15 +873,5 @@ class ProfilePage extends StatelessWidget {
     ];
     
     return '${dateTime.day} ${months[dateTime.month - 1]} ${dateTime.year + 543}';
-  }
-
-  // ตรวจสอบว่าผู้ใช้เป็น admin หรือไม่
-  bool _isAdmin(String email) {
-    final adminEmails = [
-      'admin@appecom.com',
-      'owner@appecom.com',
-      'pang@gmail.com', // เพิ่มบัญชีที่มีอยู่เป็น admin ด้วย
-    ];
-    return adminEmails.contains(email.toLowerCase());
   }
 }

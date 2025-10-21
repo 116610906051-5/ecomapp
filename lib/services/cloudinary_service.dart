@@ -346,4 +346,78 @@ class CloudinaryService {
       return null;
     }
   }
+
+  /// อัพโหลดรูปภาพโปรไฟล์ไปยัง Cloudinary
+  static Future<String?> uploadProfileImage(File imageFile, String userId) async {
+    // ตรวจสอบการตั้งค่า credentials
+    if (_cloudName == 'YOUR_CLOUD_NAME_HERE' || 
+        _apiSecret == 'USE_BACKEND_SERVER_FOR_API_SECRET' ||
+        _cloudName.isEmpty || _apiSecret.isEmpty) {
+      throw Exception('❌ กรุณาตั้งค่า Cloudinary credentials ใน .env file\n'
+          '📖 ดู .env.example สำหรับตัวอย่างการตั้งค่า');
+    }
+    
+    try {
+      // สร้างชื่อไฟล์โปรไฟล์ตาม userId
+      final fileName = 'profile_$userId';
+      
+      print('🔄 กำลังอัพโหลดรูปโปรไฟล์: $fileName');
+
+      // Parameters สำหรับ Cloudinary
+      final timestamp = (DateTime.now().millisecondsSinceEpoch ~/ 1000).toString();
+      final params = {
+        'timestamp': timestamp,
+        'public_id': fileName,
+        'folder': 'profiles', // เก็บในโฟลเดอร์ profiles
+        'overwrite': 'true', // เขียนทับรูปเก่าถ้ามี
+        'transformation': 'c_fill,h_400,w_400', // ปรับขนาดให้เป็นจตุรัส 400x400
+      };
+
+      // สร้าง signature
+      final signature = _generateSignature(params, _apiSecret);
+
+      // สร้าง multipart request
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$_baseUrl/$_cloudName/image/upload'),
+      );
+      
+      // เพิ่ม parameters
+      request.fields.addAll({
+        'timestamp': timestamp,
+        'public_id': fileName,
+        'folder': 'profiles',
+        'overwrite': 'true',
+        'transformation': 'c_fill,h_400,w_400',
+        'api_key': _apiKey,
+        'signature': signature,
+      });
+      
+      // เพิ่มไฟล์รูปภาพ
+      request.files.add(await http.MultipartFile.fromPath(
+        'file',
+        imageFile.path,
+        filename: path.basename(imageFile.path),
+      ));
+
+      // ส่ง request
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final publicUrl = data['secure_url'] as String;
+        
+        print('✅ อัพโหลดรูปโปรไฟล์สำเร็จ: $publicUrl');
+        return publicUrl;
+      } else {
+        print('❌ HTTP ${response.statusCode}: อัพโหลดรูปโปรไฟล์ล้มเหลว');
+        print('Response: ${response.body}');
+        return null;
+      }
+    } catch (e) {
+      print('❌ เกิดข้อผิดพลาดในการอัพโหลดรูปโปรไฟล์: $e');
+      return null;
+    }
+  }
 }

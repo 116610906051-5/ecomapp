@@ -36,19 +36,29 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     final user = authProvider.currentUser;
     final firebaseUser = authProvider.user;
 
-    print('🔍 Admin Dashboard - currentUser: ${user?.email}');
+    print('🔍 Admin Dashboard - currentUser: ${user?.email}, role: ${user?.role}');
     print('🔍 Admin Dashboard - firebaseUser: ${firebaseUser?.email}');
 
-    // ตรวจสอบว่าผู้ใช้เป็น admin หรือไม่ (ตรวจสอบทั้งสองแหล่ง)
-    bool isAdmin = false;
-    if (user != null && _isAdmin(user.email)) {
-      isAdmin = true;
-    } else if (firebaseUser != null && _isAdmin(firebaseUser.email ?? '')) {
-      isAdmin = true;
-    }
+    // ตรวจสอบว่าผู้ใช้เป็น admin หรือไม่จากฟิลด์ role ใน Firestore
+    bool isAdmin = user?.role == 'admin';
 
     if (!isAdmin) {
       return Scaffold(
+        appBar: AppBar(
+          title: Text('ไม่มีสิทธิ์เข้าถึง'),
+          backgroundColor: Color(0xFF6366F1),
+          foregroundColor: Colors.white,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back),
+            onPressed: () async {
+              // ล็อกเอาท์และกลับไปหน้า login
+              await authProvider.signOut();
+              if (context.mounted) {
+                Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+              }
+            },
+          ),
+        ),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -77,13 +87,19 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               ),
               SizedBox(height: 30),
               ElevatedButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () async {
+                  // ล็อกเอาท์และกลับไปหน้า login
+                  await authProvider.signOut();
+                  if (context.mounted) {
+                    Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+                  }
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Color(0xFF6366F1),
                   padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
                 ),
                 child: Text(
-                  'กลับหน้าหลัก',
+                  'ออกจากระบบ',
                   style: TextStyle(color: Colors.white),
                 ),
               ),
@@ -1279,20 +1295,16 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     );
   }
 
-  List<String> getAdminEmails() {
-    return [
-      'admin@appecom.com',
-      'owner@appecom.com', 
-      'pang@gmail.com',
-    ];
-  }
 
-  bool _isAdmin(String email) {
-    return getAdminEmails().contains(email.toLowerCase());  
-  }
 
   Widget _buildAdminManagement() {
-    final adminEmails = getAdminEmails();
+    // รายการอีเมลแอดมินสำหรับแสดง (ไม่ได้ใช้ในการเช็คสิทธิ์แล้ว)
+    final adminEmails = [
+      'admin@appecom.com',
+      'owner@appecom.com',
+      'pang@gmail.com',
+      'p@p.com',
+    ];
     
     return SingleChildScrollView(
       padding: EdgeInsets.all(20),

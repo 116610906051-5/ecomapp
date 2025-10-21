@@ -35,8 +35,13 @@ class AuthWrapper extends StatelessWidget {
           );
         }
 
-        // If user is authenticated, show main app
+        // If user is authenticated, check role
         if (authProvider.isAuthenticated) {
+          final user = authProvider.currentUser;
+          
+          // ทุก user (ทั้งแอดมินและลูกค้า) ให้ไปหน้า MainNavigation
+          // แอดมินจะเข้าหน้าแอดมินได้จากเมนูในแถบ navigation
+          print('✅ User logged in: ${user?.email}, role: ${user?.role}');
           return MainNavigation();
         }
 

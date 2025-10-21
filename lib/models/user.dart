@@ -6,6 +6,7 @@ class AppUser {
   final String? photoURL;
   final String? profileImageUrl;
   final String? phoneNumber;
+  final String? role; // เพิ่มฟิลด์ role สำหรับแยก admin/customer
   final List<Address> addresses;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -18,6 +19,7 @@ class AppUser {
     this.photoURL,
     this.profileImageUrl,
     this.phoneNumber,
+    this.role, // เพิ่ม role parameter
     this.addresses = const [],
     required this.createdAt,
     required this.updatedAt,
@@ -32,6 +34,7 @@ class AppUser {
       photoURL: map['photoURL'],
       profileImageUrl: map['profileImageUrl'],
       phoneNumber: map['phoneNumber'],
+      role: map['role'], // อ่านค่า role จาก Firestore
       addresses: (map['addresses'] as List?)
           ?.map((address) => Address.fromMap(address))
           .toList() ?? [],
@@ -62,6 +65,7 @@ class AppUser {
       'photoURL': photoURL,
       'profileImageUrl': profileImageUrl,
       'phoneNumber': phoneNumber,
+      'role': role, // เพิ่ม role ใน toMap
       'addresses': addresses.map((address) => address.toMap()).toList(),
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
@@ -76,6 +80,7 @@ class AppUser {
     String? photoURL,
     String? profileImageUrl,
     String? phoneNumber,
+    String? role,
     List<Address>? addresses,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -88,6 +93,7 @@ class AppUser {
       photoURL: photoURL ?? this.photoURL,
       profileImageUrl: profileImageUrl ?? this.profileImageUrl,
       phoneNumber: phoneNumber ?? this.phoneNumber,
+      role: role ?? this.role,
       addresses: addresses ?? this.addresses,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

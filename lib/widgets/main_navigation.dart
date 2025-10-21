@@ -23,31 +23,14 @@ class _MainNavigationState extends State<MainNavigation> {
     AdminDashboardPage(), // เพิ่มหน้า Admin Dashboard
   ];
 
-  // ตรวจสอบว่าผู้ใช้เป็น admin หรือไม่
-  bool _isAdmin(String? email) {
-    if (email == null) return false;
-    final adminEmails = [
-      'admin@appecom.com',
-      'owner@appecom.com',
-      'pang@gmail.com',
-    ];
-    return adminEmails.contains(email.toLowerCase());
-  }
-
   @override
   Widget build(BuildContext context) {
     return Consumer<AuthProvider>(
       builder: (context, authProvider, child) {
         final user = authProvider.currentUser;
-        final firebaseUser = authProvider.user;
         
-        // ตรวจสอบว่าเป็น admin หรือไม่
-        bool isAdmin = false;
-        if (user != null && _isAdmin(user.email)) {
-          isAdmin = true;
-        } else if (firebaseUser != null && _isAdmin(firebaseUser.email)) {
-          isAdmin = true;
-        }
+        // ตรวจสอบว่าเป็น admin หรือไม่ จาก role ใน Firestore
+        bool isAdmin = user?.role == 'admin';
         
         // สร้าง navigation items ตามสิทธิ์ผู้ใช้
         List<BottomNavigationBarItem> navItems = [

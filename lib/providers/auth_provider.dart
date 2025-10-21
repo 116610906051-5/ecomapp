@@ -328,6 +328,7 @@ class AuthProvider extends ChangeNotifier {
   Future<void> updateUserProfile({
     String? displayName,
     String? phone,
+    String? profileImageUrl,
   }) async {
     try {
       if (_user == null || _currentUser == null) {
@@ -350,6 +351,11 @@ class AuthProvider extends ChangeNotifier {
         updateData['phoneNumber'] = phone.trim();
       }
 
+      if (profileImageUrl != null && profileImageUrl.trim().isNotEmpty) {
+        updateData['profileImageUrl'] = profileImageUrl.trim();
+        updateData['photoURL'] = profileImageUrl.trim(); // อัปเดตทั้ง 2 ฟิลด์
+      }
+
       try {
         await _firestore.collection('users').doc(_user!.uid).update(updateData);
         print('✅ Firestore update successful');
@@ -363,6 +369,8 @@ class AuthProvider extends ChangeNotifier {
         displayName: displayName?.trim() ?? _currentUser!.displayName,
         name: displayName?.trim() ?? _currentUser!.name,
         phoneNumber: phone?.trim() ?? _currentUser!.phoneNumber,
+        profileImageUrl: profileImageUrl?.trim() ?? _currentUser!.profileImageUrl,
+        photoURL: profileImageUrl?.trim() ?? _currentUser!.photoURL,
         updatedAt: DateTime.now(),
       );
 
