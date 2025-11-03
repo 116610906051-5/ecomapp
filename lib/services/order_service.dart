@@ -3,6 +3,7 @@ import '../models/order.dart';
 //import '../models/cart.dart';
 import 'stripe_service.dart';
 import 'cart_services.dart';
+import 'order_notification_service.dart';
 
 class OrderService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -183,6 +184,48 @@ class OrderService {
 
       await _ordersRef.doc(orderId).update(updateData);
       print('✅ Order status updated');
+      
+      // ส่งการแจ้งเตือนการอัพเดทสถานะออเดอร์
+      try {
+        // ดึงข้อมูลออเดอร์เพื่อส่งการแจ้งเตือน
+        final orderDoc = await _ordersRef.doc(orderId).get();
+        if (orderDoc.exists) {
+          final orderData = orderDoc.data() as Map<String, dynamic>;
+          
+          // ดึง userId จากออเดอร์
+          final customerId = orderData['userId'] as String? ?? 
+                            orderData['customerId'] as String? ?? 
+                            orderData['userID'] as String? ?? '';
+          final items = orderData['items'] as List<dynamic>? ?? [];
+          
+          // ตรวจสอบว่า customerId ไม่เป็นค่าว่าง
+          if (customerId.isEmpty) {
+            print('⚠️ Warning: No userId found in order, skipping notification');
+          } else {
+            // ใช้สินค้าตัวแรกในออเดอร์สำหรับการแจ้งเตือน
+            String productName = 'สินค้าในออเดอร์';
+            String? productImage;
+            
+            if (items.isNotEmpty) {
+              final firstItem = items.first as Map<String, dynamic>;
+              productName = firstItem['productName'] as String? ?? productName;
+              productImage = firstItem['productImage'] as String?;
+            }
+            
+            await OrderNotificationService.notifyOrderStatusUpdate(
+              orderId: orderId,
+              customerId: customerId,
+              newStatus: status.name,
+              productName: productName,
+              productImage: productImage,
+            );
+            print('📬 Order status notification sent');
+          }
+        }
+      } catch (notificationError) {
+        print('⚠️ Failed to send notification: $notificationError');
+        // ไม่ throw error เพราะการอัพเดทสถานะสำเร็จแล้ว
+      }
     } catch (e) {
       print('❌ Error updating order status: $e');
       throw Exception('Failed to update order status: $e');

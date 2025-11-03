@@ -3,7 +3,9 @@ import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../providers/auth_provider.dart';
+import '../providers/notification_settings_provider.dart';
 import '../services/cloudinary_service.dart';
+import '../services/advanced_notification_service.dart';
 import '../widgets/notification_badge.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -683,82 +685,370 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   void _showNotificationSettings(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final userId = authProvider.currentUser?.id;
+    
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        padding: EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Notification Settings',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1E293B),
-              ),
+      isScrollControlled: true,
+      builder: (context) => ChangeNotifierProvider(
+        create: (_) => NotificationSettingsProvider()..initialize(userId: userId),
+        child: Consumer<NotificationSettingsProvider>(
+          builder: (context, notificationProvider, child) => Container(
+            height: MediaQuery.of(context).size.height * 0.85,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
             ),
-            SizedBox(height: 20),
-            _buildNotificationToggle('Order Updates', true),
-            _buildNotificationToggle('Promotional Offers', false),
-            _buildNotificationToggle('New Products', true),
-            _buildNotificationToggle('Price Drops', false),
-            SizedBox(height: 20),
-            Container(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF6366F1),
-                  padding: EdgeInsets.symmetric(vertical: 16),
-                ),
-                child: Text(
-                  'Save Settings',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
+            child: Column(
+              children: [
+                // Handle indicator
+                Container(
+                  margin: EdgeInsets.only(top: 12, bottom: 8),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-              ),
+                
+                // Scrollable content
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.all(20),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Notification Settings',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1E293B),
+                      ),
+                    ),
+                    if (notificationProvider.isLoading)
+                      SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                  ],
+                ),
+                SizedBox(height: 8),
+                Text(
+                  '${notificationProvider.enabledNotificationsCount}/6 notifications enabled',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF64748B),
+                  ),
+                ),
+                SizedBox(height: 20),
+                
+                // Loading state
+                if (notificationProvider.isLoading)
+                  Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(40),
+                      child: CircularProgressIndicator(),
+                    ),
+                  )
+                else
+                  Column(
+                    children: [
+                      // Quick Actions
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: notificationProvider.isSaving ? null : () async {
+                                try {
+                                  await notificationProvider.toggleAllNotifications(true, userId: userId);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('All notifications enabled')),
+                                  );
+                                } catch (e) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Error: $e')),
+                                  );
+                                }
+                              },
+                              icon: Icon(Icons.notifications_active, size: 16),
+                              label: Text('Enable All', style: TextStyle(fontSize: 12)),
+                            ),
+                          ),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: notificationProvider.isSaving ? null : () async {
+                                try {
+                                  await notificationProvider.toggleAllNotifications(false, userId: userId);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('All notifications disabled')),
+                                  );
+                                } catch (e) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Error: $e')),
+                                  );
+                                }
+                              },
+                              icon: Icon(Icons.notifications_off, size: 16),
+                              label: Text('Disable All', style: TextStyle(fontSize: 12)),
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 16),
+                      
+                      // Individual Settings
+                      _buildRealNotificationToggle(
+                        context,
+                        notificationProvider,
+                        'Order Updates',
+                        'orderUpdates',
+                        'Get notified about your order status changes',
+                        Icons.shopping_bag,
+                        Color(0xFF10B981),
+                        userId,
+                      ),
+                      _buildRealNotificationToggle(
+                        context,
+                        notificationProvider,
+                        'Chat Messages',
+                        'chatMessages',
+                        'Receive notifications for new chat messages',
+                        Icons.chat,
+                        Color(0xFF6366F1),
+                        userId,
+                      ),
+                      _buildRealNotificationToggle(
+                        context,
+                        notificationProvider,
+                        'Promotional Offers',
+                        'promotionalOffers',
+                        'Get notified about special deals and discounts',
+                        Icons.local_offer,
+                        Color(0xFFEF4444),
+                        userId,
+                      ),
+                      _buildRealNotificationToggle(
+                        context,
+                        notificationProvider,
+                        'New Products',
+                        'newProducts',
+                        'Be the first to know about new arrivals',
+                        Icons.new_releases,
+                        Color(0xFFF59E0B),
+                        userId,
+                      ),
+                      _buildRealNotificationToggle(
+                        context,
+                        notificationProvider,
+                        'Price Drops',
+                        'priceDrops',
+                        'Get alerts when product prices decrease',
+                        Icons.trending_down,
+                        Color(0xFF8B5CF6),
+                        userId,
+                      ),
+                      _buildRealNotificationToggle(
+                        context,
+                        notificationProvider,
+                        'System Notifications',
+                        'systemNotifications',
+                        'Important system and security notifications',
+                        Icons.security,
+                        Color(0xFF64748B),
+                        userId,
+                      ),
+                    ],
+                  ),
+                
+                SizedBox(height: 20),
+                
+                // Action Buttons
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: notificationProvider.isSaving ? null : () async {
+                          try {
+                            await notificationProvider.resetToDefault(userId: userId);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Settings reset to default')),
+                            );
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Error: $e')),
+                            );
+                          }
+                        },
+                        child: Text('Reset'),
+                      ),
+                    ),
+                    SizedBox(width: 12),
+                    Expanded(
+                      flex: 2,
+                      child: ElevatedButton(
+                        onPressed: notificationProvider.isSaving ? null : () {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Notification settings saved'),
+                              backgroundColor: Color(0xFF10B981),
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color(0xFF6366F1),
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                        ),
+                        child: notificationProvider.isSaving
+                            ? SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                ),
+                              )
+                            : Text(
+                                'Done',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildNotificationToggle(String title, bool value) {
-    return StatefulBuilder(
-      builder: (context, setState) => Container(
-        margin: EdgeInsets.only(bottom: 16),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 16,
-                color: Color(0xFF1E293B),
-              ),
-            ),
-            Switch(
-              value: value,
-              onChanged: (newValue) {
-                setState(() {
-                  value = newValue;
-                });
-              },
-              activeColor: Color(0xFF6366F1),
-            ),
-          ],
+  Widget _buildRealNotificationToggle(
+    BuildContext context,
+    NotificationSettingsProvider provider,
+    String title,
+    String settingKey,
+    String description,
+    IconData icon,
+    Color iconColor,
+    String? userId,
+  ) {
+    final isEnabled = provider.settings[settingKey] ?? false;
+    
+    return Container(
+      margin: EdgeInsets.only(bottom: 16),
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isEnabled ? iconColor.withOpacity(0.3) : Colors.grey.withOpacity(0.2),
+          width: 1,
         ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: iconColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              icon,
+              color: iconColor,
+              size: 20,
+            ),
+          ),
+          SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1E293B),
+                  ),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  description,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF64748B),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(width: 8),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Test button
+              if (isEnabled && (settingKey == 'orderUpdates' || settingKey == 'chatMessages'))
+                IconButton(
+                  onPressed: provider.isSaving ? null : () async {
+                    try {
+                      final type = settingKey == 'orderUpdates' ? 'order_status' : 'chat';
+                      await provider.sendTestNotification(type);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Test notification sent!'),
+                          backgroundColor: Color(0xFF10B981),
+                        ),
+                      );
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Failed to send test notification'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  },
+                  icon: Icon(Icons.send, size: 16, color: iconColor),
+                  tooltip: 'Send test notification',
+                ),
+              
+              // Toggle switch
+              Transform.scale(
+                scale: 0.8,
+                child: Switch(
+                  value: isEnabled,
+                  onChanged: provider.isSaving ? null : (newValue) async {
+                    await provider.updateSetting(settingKey, newValue, userId: userId);
+                  },
+                  activeColor: iconColor,
+                  inactiveTrackColor: Colors.grey.withOpacity(0.3),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

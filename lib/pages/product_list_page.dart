@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/product_provider.dart';
+import '../providers/cart_provider.dart';
+import '../providers/wishlist_provider.dart';
+import '../providers/auth_provider.dart';
 import '../models/product.dart';
 
 class ProductListPage extends StatefulWidget {
@@ -43,6 +46,13 @@ class _ProductListPageState extends State<ProductListPage> {
           final productProvider = Provider.of<ProductProvider>(context, listen: false);
           productProvider.setSelectedCategory(args['category']);
         }
+      }
+      
+      // Load wishlist for current user
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final wishlistProvider = Provider.of<WishlistProvider>(context, listen: false);
+      if (authProvider.currentUser != null) {
+        wishlistProvider.loadWishlist(authProvider.currentUser!.id);
       }
     });
   }
@@ -102,6 +112,49 @@ class _ProductListPageState extends State<ProductListPage> {
               Icons.search,
               color: Color(0xFF6366F1),
             ),
+          ),
+          // Cart Icon with Badge
+          Consumer<CartProvider>(
+            builder: (context, cartProvider, child) {
+              return Stack(
+                children: [
+                  IconButton(
+                    onPressed: () {
+                      Navigator.pushNamed(context, '/cart');
+                    },
+                    icon: Icon(
+                      Icons.shopping_cart,
+                      color: Color(0xFF6366F1),
+                    ),
+                  ),
+                  if (cartProvider.itemCount > 0)
+                    Positioned(
+                      right: 6,
+                      top: 6,
+                      child: Container(
+                        padding: EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        constraints: BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
+                        child: Text(
+                          '${cartProvider.itemCount}',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
           ),
         ],
       ),
@@ -399,9 +452,9 @@ class _ProductListPageState extends State<ProductListPage> {
         return GridView.builder(
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
-            childAspectRatio: 0.75,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
+            childAspectRatio: 0.58, // เพิ่มพื้นที่แนวตั้งเพื่อป้องกัน overflow
+            crossAxisSpacing: 8,
+            mainAxisSpacing: 8,
           ),
           itemCount: products.length,
           itemBuilder: (context, index) {
@@ -540,25 +593,65 @@ class _ProductListPageState extends State<ProductListPage> {
                             ),
                       ),
                     ),
+                    
+                    // Sale Badge
+                    if (product.isCurrentlyOnSale && product.discountText.isNotEmpty)
+                      Positioned(
+                        top: 8,
+                        left: 8,
+                        child: Container(
+                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Color(0xFFEF4444),
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.red.withOpacity(0.3),
+                                blurRadius: 4,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Text(
+                            product.discountText,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    
                     Positioned(
                       top: 8,
                       right: 8,
-                      child: Container(
-                        padding: EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 4,
-                            ),
-                          ],
-                        ),
-                        child: Icon(
-                          Icons.favorite_border,
-                          size: 16,
-                          color: Color(0xFF64748B),
+                      child: GestureDetector(
+                        onTap: () {
+                          _toggleFavorite(product);
+                        },
+                        child: Container(
+                          padding: EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 4,
+                              ),
+                            ],
+                          ),
+                          child: Consumer<WishlistProvider>(
+                            builder: (context, wishlistProvider, child) {
+                              final isInWishlist = wishlistProvider.isInWishlist(product.id);
+                              return Icon(
+                                isInWishlist ? Icons.favorite : Icons.favorite_border,
+                                size: 16,
+                                color: isInWishlist ? Colors.red : Color(0xFF64748B),
+                              );
+                            },
+                          ),
                         ),
                       ),
                     ),
@@ -567,68 +660,120 @@ class _ProductListPageState extends State<ProductListPage> {
               ),
             ),
             // Product Info
-            Expanded(
-              flex: 2,
-              child: Padding(
-                padding: EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min, // ใช้พื้นที่เท่าที่จำเป็น
-                  children: [
-                    Flexible( // ใช้ Flexible แทน Text ธรรมดา
-                      child: Text(
-                        product.name,
+            Container(
+              height: 80, // ใช้ความสูงคงที่เพื่อป้องกัน overflow
+              padding: EdgeInsets.all(6),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    product.name,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1E293B),
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  SizedBox(height: 2),
+                  Row(
+                    children: [
+                      Icon(Icons.star, size: 10, color: Color(0xFFFBBF24)),
+                      SizedBox(width: 2),
+                      Text(
+                        product.rating.toString(),
                         style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF1E293B),
+                          fontSize: 8,
+                          color: Color(0xFF64748B),
                         ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                    SizedBox(height: 8), // ใช้ SizedBox แทน Spacer เพื่อควบคุมขนาดได้
-                    Row(
-                      children: [
-                        Icon(Icons.star, size: 14, color: Color(0xFFFBBF24)),
-                        SizedBox(width: 4),
-                        Text(
-                          product.rating.toString(),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFF64748B),
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 8),
-                    Row(
+                    ],
+                  ),
+                  Expanded(
+                    child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Text(
-                          '฿${product.price.toStringAsFixed(0)}',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF6366F1),
+                        Flexible(
+                          flex: 3,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (product.isCurrentlyOnSale && product.originalPrice != null) ...[
+                                // Price display for sale items - use single line with compact layout
+                                RichText(
+                                  text: TextSpan(
+                                    children: [
+                                      TextSpan(
+                                        text: '฿${product.displayOriginalPrice.toStringAsFixed(0)} ',
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          color: Colors.grey[500],
+                                          decoration: TextDecoration.lineThrough,
+                                          decorationColor: Colors.grey[500],
+                                        ),
+                                      ),
+                                      TextSpan(
+                                        text: '฿${product.displayPrice.toStringAsFixed(0)}',
+                                        style: TextStyle(
+                                          fontSize: 17,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFFEF4444),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ] else ...[
+                                // Regular Price
+                                Text(
+                                  '฿${product.displayPrice.toStringAsFixed(0)}',
+                                  style: TextStyle(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF6366F1),
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ],
                           ),
                         ),
-                        Container(
-                          padding: EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                            color: Color(0xFF6366F1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Icon(
-                            Icons.add_shopping_cart,
-                            size: 14,
-                            color: Colors.white,
+                        GestureDetector(
+                          onTap: () {
+                            _addToCart(product);
+                          },
+                          child: Container(
+                            padding: EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Color(0xFF6366F1),
+                              borderRadius: BorderRadius.circular(6),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Color(0xFF6366F1).withOpacity(0.3),
+                                  blurRadius: 3,
+                                  offset: Offset(0, 1),
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              Icons.add_shopping_cart,
+                              size: 12,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -746,25 +891,83 @@ class _ProductListPageState extends State<ProductListPage> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(
-                '฿${product.price.toStringAsFixed(0)}',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF6366F1),
-                ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  if (product.isCurrentlyOnSale && product.originalPrice != null) ...[
+                    // Original Price (crossed out)
+                    Text(
+                      '฿${product.displayOriginalPrice.toStringAsFixed(0)}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[500],
+                        decoration: TextDecoration.lineThrough,
+                        decorationColor: Colors.grey[500],
+                        decorationThickness: 2,
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    // Sale Price
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '฿${product.displayPrice.toStringAsFixed(0)}',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFFEF4444),
+                          ),
+                        ),
+                        if (product.discountPercentage != null) ...[
+                          SizedBox(width: 4),
+                          Container(
+                            padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Color(0xFFEF4444),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              '-${product.discountPercentage!.toInt()}%',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ] else ...[
+                    // Regular Price
+                    Text(
+                      '฿${product.displayPrice.toStringAsFixed(0)}',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF6366F1),
+                      ),
+                    ),
+                  ],
+                ],
               ),
               SizedBox(height: 8),
-              Container(
-                padding: EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Color(0xFF6366F1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  Icons.add_shopping_cart,
-                  size: 16,
-                  color: Colors.white,
+              GestureDetector(
+                onTap: () {
+                  _addToCart(product);
+                },
+                child: Container(
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Color(0xFF6366F1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.add_shopping_cart,
+                    size: 16,
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ],
@@ -844,5 +1047,134 @@ class _ProductListPageState extends State<ProductListPage> {
     }
     // ถ้าไม่มีใน imageUrls ให้ใช้ imageUrl (backward compatibility)
     return product.imageUrl;
+  }
+
+  // ฟังก์ชันเพิ่มสินค้าเข้าตะกร้า
+  Future<void> _addToCart(Product product) async {
+    final cartProvider = Provider.of<CartProvider>(context, listen: false);
+    
+    try {
+      await cartProvider.addToCart(product: product);
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.shopping_cart, color: Colors.white, size: 20),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'เพิ่ม "${product.name}" เข้าตะกร้าแล้ว',
+                  style: TextStyle(fontSize: 14),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: Color(0xFF10B981),
+          duration: Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          action: SnackBarAction(
+            label: 'ดูตะกร้า',
+            textColor: Colors.white,
+            onPressed: () {
+              Navigator.pushNamed(context, '/cart');
+            },
+          ),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('เกิดข้อผิดพลาด: ${e.toString()}'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
+    }
+  }
+
+  // ฟังก์ชันสลับสถานะรายการโปรด
+  Future<void> _toggleFavorite(Product product) async {
+    final wishlistProvider = Provider.of<WishlistProvider>(context, listen: false);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    
+    if (authProvider.currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('กรุณาเข้าสู่ระบบเพื่อใช้รายการโปรด'),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          action: SnackBarAction(
+            label: 'เข้าสู่ระบบ',
+            textColor: Colors.white,
+            onPressed: () {
+              Navigator.pushNamed(context, '/login');
+            },
+          ),
+        ),
+      );
+      return;
+    }
+    
+    try {
+      await wishlistProvider.toggleWishlist(authProvider.currentUser!.id, product);
+      
+      final isInWishlist = wishlistProvider.isInWishlist(product.id);
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(
+                isInWishlist ? Icons.favorite : Icons.favorite_border,
+                color: Colors.white,
+                size: 20,
+              ),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  isInWishlist 
+                    ? 'เพิ่ม "${product.name}" ในรายการโปรดแล้ว'
+                    : 'ลบ "${product.name}" จากรายการโปรดแล้ว',
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: isInWishlist ? Colors.red[400] : Colors.grey[600],
+          duration: Duration(seconds: 1),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          action: isInWishlist ? SnackBarAction(
+            label: 'ดูรายการโปรด',
+            textColor: Colors.white,
+            onPressed: () {
+              Navigator.pushNamed(context, '/wishlist');
+            },
+          ) : null,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('เกิดข้อผิดพลาด: ${e.toString()}'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
+    }
   }
 }

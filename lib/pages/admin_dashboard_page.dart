@@ -12,6 +12,8 @@ import 'add_product_page.dart';
 import 'edit_product_page.dart';
 import 'admin_coupon_management_page.dart';
 import 'admin_order_management_page.dart';
+import 'admin_notification_management_page.dart';
+import 'admin_special_offers_page.dart';
 
 class AdminDashboardPage extends StatefulWidget {
   @override
@@ -1537,6 +1539,56 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                       context,
                       MaterialPageRoute(
                         builder: (context) => AdminCouponManagementPage(),
+                      ),
+                    );
+                  },
+                ),
+                Divider(height: 1),
+                ListTile(
+                  leading: Container(
+                    padding: EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(Icons.local_fire_department, color: Colors.red),
+                  ),
+                  title: Text(
+                    'จัดการ Special Offers',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text('สร้างและจัดการสินค้าลดราคาพิเศษ'),
+                  trailing: Icon(Icons.arrow_forward_ios, size: 16),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AdminSpecialOffersPage(),
+                      ),
+                    );
+                  },
+                ),
+                Divider(height: 1),
+                ListTile(
+                  leading: Container(
+                    padding: EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.indigo.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(Icons.notifications_active, color: Colors.indigo),
+                  ),
+                  title: Text(
+                    'จัดการการแจ้งเตือน',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text('ทดสอบและจัดการระบบการแจ้งเตือน FCM'),
+                  trailing: Icon(Icons.arrow_forward_ios, size: 16),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AdminNotificationManagementPage(),
                       ),
                     );
                   },

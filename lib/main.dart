@@ -10,6 +10,7 @@ import 'providers/product_provider.dart';
 import 'providers/cart_provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/wishlist_provider.dart';
+import 'providers/notification_settings_provider.dart';
 import 'widgets/data_initializer.dart';
 import 'widgets/auth_wrapper.dart';
 import 'pages/login_page.dart';
@@ -26,7 +27,11 @@ import 'pages/address_list_page.dart';
 import 'pages/my_orders_page.dart';
 import 'pages/wishlist_page.dart';
 import 'pages/order_history_page.dart';
+import 'pages/admin_notification_management_page.dart';
+import 'pages/special_offers_page.dart';
+import 'pages/admin_special_offers_page.dart';
 import 'services/notification_service.dart';
+import 'services/advanced_notification_service.dart';
 import 'services/navigation_service.dart';
 import 'services/stripe_service.dart';
 
@@ -42,7 +47,18 @@ void main() async {
     print('❌ Error initializing Stripe: $e');
   }
   
-  // Initialize notification service with navigation callback (context will be set later)
+  // Initialize advanced notification service
+  await AdvancedNotificationService.initialize();
+  AdvancedNotificationService.onChatNotificationTap = (chatRoomId, fromUserName) {
+    print('📱 Navigate to chat: $chatRoomId from $fromUserName');
+    NavigationService.navigateToChat(chatRoomId);
+  };
+  AdvancedNotificationService.onOrderNotificationTap = (orderId, status) {
+    print('📱 Navigate to order: $orderId with status $status');
+    // TODO: Navigate to order details
+  };
+  
+  // Initialize legacy notification service (for compatibility)
   await NotificationService.initialize();
   NotificationService.onNotificationTap = NavigationService.navigateToChat;
   
@@ -60,6 +76,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ProductProvider()),
         ChangeNotifierProvider(create: (_) => CartProvider()),
         ChangeNotifierProvider(create: (_) => WishlistProvider()),
+        ChangeNotifierProvider(create: (_) => NotificationSettingsProvider()),
       ],
       child: MaterialApp(
         title: 'E-Commerce App',
@@ -127,6 +144,9 @@ class MyApp extends StatelessWidget {
           '/my-orders': (context) => MyOrdersPage(),
           '/wishlist': (context) => WishlistPage(),
           '/order-history': (context) => OrderHistoryPage(),
+          '/admin-notifications': (context) => AdminNotificationManagementPage(), // เพิ่ม route สำหรับจัดการการแจ้งเตือน
+          '/special-offers': (context) => SpecialOffersPage(),
+          '/admin-special-offers': (context) => AdminSpecialOffersPage(),
         },
       ),
     );

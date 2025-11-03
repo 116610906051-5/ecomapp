@@ -1,15 +1,21 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
-//import 'dart:convert';
-import 'chat_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class NotificationService {
   static final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
+  static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  
+  // FCM Configuration (available for reference)
+  static const String senderId = '236498123851';
+  static const String vapidKey = 'BE5DRXtADIaD0JlnCnienovezvIoM5fKa27pJ5UyFeFbL6O_JWsUgwZdjuAhcK7lhQ6S3WSVHuhY7Q8Jy5004sY';
+  static const String fcmApiUrl = 'https://fcm.googleapis.com/fcm/send';
   
   static String? _fcmToken;
   static String? get fcmToken => _fcmToken;
 
-  // Navigation callback
+  // Navigation callbacks
   static Function(String)? onNotificationTap;
+  static Function(String)? onOrderStatusUpdate;
   
   static Future<void> initialize() async {
     print('🔔 Initializing notification service...');
@@ -103,125 +109,183 @@ class NotificationService {
     }
   }
 
-  // Send notification to specific user
+  // แจ้งเตือนข้อความแชทใหม่
   static Future<void> sendChatNotification({
     required String toUserId,
     required String fromUserName,
     required String message,
     required String chatRoomId,
+    String? fromUserImage,
   }) async {
-    print('📤 Sending notification to $toUserId: $fromUserName: $message');
-    
-    // In a real app, this would trigger a backend API to send FCM message
-    // For now, we'll simulate it by triggering a fake message
-    await _simulateNotification(
-      title: 'ข้อความใหม่จาก $fromUserName',
-      body: message,
-      chatRoomId: chatRoomId,
-      fromUserName: fromUserName,
-    );
+    try {
+      print('📤 Sending chat notification to $toUserId');
+      
+      // ดึง FCM token ของผู้ใช้ที่จะส่งแจ้งเตือนไป
+      final userDoc = await _firestore.collection('users').doc(toUserId).get();
+      final fcmToken = userDoc.data()?['fcmToken'];
+      
+      if (fcmToken == null) {
+        print('⚠️ No FCM token found for user $toUserId');
+        return;
+      }
+      
+      // ส่งการแจ้งเตือนผ่าน FCM
+      await _sendFCMNotification(
+        token: fcmToken,
+        title: 'ข้อความใหม่จาก $fromUserName',
+        body: message.length > 50 ? '${message.substring(0, 50)}...' : message,
+        data: {
+          'type': 'chat',
+          'chatRoomId': chatRoomId,
+          'fromUserName': fromUserName,
+          'fromUserImage': fromUserImage ?? '',
+        },
+        imageUrl: fromUserImage,
+      );
+      
+      print('✅ Chat notification sent successfully');
+    } catch (e) {
+      print('❌ Error sending chat notification: $e');
+    }
   }
-
-  // Simulate a notification for testing purposes
-  static Future<void> _simulateNotification({
+  
+  // แจ้งเตือนการอัปเดตสถานะสินค้า
+  static Future<void> sendOrderStatusNotification({
+    required String toUserId,
+    required String orderId,
+    required String status,
+    required String productName,
+    String? productImage,
+  }) async {
+    try {
+      print('📤 Sending order status notification to $toUserId');
+      
+      // ดึง FCM token ของผู้ใช้
+      final userDoc = await _firestore.collection('users').doc(toUserId).get();
+      final fcmToken = userDoc.data()?['fcmToken'];
+      
+      if (fcmToken == null) {
+        print('⚠️ No FCM token found for user $toUserId');
+        return;
+      }
+      
+      // แปลงสถานะเป็นภาษาไทย
+      String statusText = _getStatusText(status);
+      String emoji = _getStatusEmoji(status);
+      
+      await _sendFCMNotification(
+        token: fcmToken,
+        title: '$emoji สถานะคำสั่งซื้อของคุณ',
+        body: '$productName - $statusText',
+        data: {
+          'type': 'order_status',
+          'orderId': orderId,
+          'status': status,
+          'productName': productName,
+          'productImage': productImage ?? '',
+        },
+        imageUrl: productImage,
+      );
+      
+      print('✅ Order status notification sent successfully');
+    } catch (e) {
+      print('❌ Error sending order status notification: $e');
+    }
+  }
+  
+  // ส่งการแจ้งเตือนผ่าน FCM API
+  static Future<void> _sendFCMNotification({
+    required String token,
     required String title,
     required String body,
-    required String chatRoomId,
-    required String fromUserName,
+    required Map<String, String> data,
+    String? imageUrl,
   }) async {
-    // Create a simulated FCM message
-    final simulatedMessage = RemoteMessage(
-      messageId: 'simulated_${DateTime.now().millisecondsSinceEpoch}',
-      data: {
-        'chatRoomId': chatRoomId,
-        'fromUserName': fromUserName,
-      },
+    try {
+      // ใน production ควรใช้ Server Key แทน
+      // ตอนนี้ใช้การจำลองการแจ้งเตือนแทน
+      await _simulateAdvancedNotification(
+        title: title,
+        body: body,
+        data: data,
+        imageUrl: imageUrl,
+      );
+      
+      print('✅ FCM notification sent to token: ${token.substring(0, 20)}...');
+    } catch (e) {
+      print('❌ Error sending FCM notification: $e');
+    }
+  }
+  
+  // จำลองการแจ้งเตือนขั้นสูง
+  static Future<void> _simulateAdvancedNotification({
+    required String title,
+    required String body,
+    required Map<String, String> data,
+    String? imageUrl,
+  }) async {
+    print('🔔 Simulating advanced notification:');
+    print('   Title: $title');
+    print('   Body: $body');
+    print('   Data: $data');
+    print('   Image: $imageUrl');
+    
+    // สร้าง RemoteMessage จำลอง
+    final message = RemoteMessage(
+      messageId: 'sim_${DateTime.now().millisecondsSinceEpoch}',
+      data: data,
       notification: RemoteNotification(
         title: title,
         body: body,
         android: AndroidNotification(
-          channelId: 'chat_messages',
+          channelId: data['type'] == 'chat' ? 'chat_messages' : 'order_updates',
           priority: AndroidNotificationPriority.highPriority,
+        ),
+        apple: AppleNotification(
+          imageUrl: imageUrl,
         ),
       ),
     );
     
-    // Trigger the foreground message handler to simulate notification
-    await _handleForegroundMessage(simulatedMessage);
+    // จำลองการแสดงการแจ้งเตือน
+    await _handleForegroundMessage(message);
   }
-
-  // Send test notification - simulate real Firebase notification
-  static Future<void> sendTestNotification() async {
-    print('🧪 Sending test notification...');
-    
-    try {
-      await _simulateNotification(
-        title: 'ข้อความใหม่จาก ทีมงานสนับสนุน',
-        body: 'สวัสดีครับ! นี่คือการทดสอบระบบการแจ้งเตือน 🔔',
-        chatRoomId: 'test_chat_room_123',
-        fromUserName: 'ทีมงานสนับสนุน',
-      );
-      
-      print('📤 Test notification sent successfully');
-      print('📱 Firebase will display the notification in the system tray!');
-    } catch (e) {
-      print('❌ Error sending test notification: $e');
+  
+  // แปลงสถานะเป็นข้อความไทย
+  static String _getStatusText(String status) {
+    switch (status) {
+      case 'pending': return 'รอการยืนยัน';
+      case 'packing': return 'กำลังเตรียมสินค้า';
+      case 'processing': return 'กำลังจัดส่ง';
+      case 'shipped': return 'ส่งแล้ว';
+      case 'delivered': return 'จัดส่งสำเร็จ';
+      case 'cancelled': return 'ยกเลิกแล้ว';
+      default: return status;
     }
   }
-
-  // Clear notification badge when user reads messages
-  static Future<void> clearNotificationBadge() async {
-    try {
-      // Clear Firebase badge count
-      await _firebaseMessaging.setForegroundNotificationPresentationOptions(
-        alert: true,
-        badge: false,
-        sound: true,
-      );
-      
-      print('✅ Notification badge cleared');
-    } catch (e) {
-      print('❌ Error clearing notification badge: $e');
+  
+  // ดึง emoji ตามสถานะ
+  static String _getStatusEmoji(String status) {
+    switch (status) {
+      case 'pending': return '⏳';
+      case 'packing': return '📦';
+      case 'processing': return '🚚';
+      case 'shipped': return '✈️';
+      case 'delivered': return '✅';
+      case 'cancelled': return '❌';
+      default: return '📋';
     }
   }
-
-  // Mark chat messages as read and clear badge
-  static Future<void> markChatAsRead(String chatRoomId) async {
-    print('👀 Marking chat $chatRoomId as read');
-    
-    // Clear the notification badge
-    await clearNotificationBadge();
-    
-    // Mark messages as read in Firestore (isAdmin = false for customer)
-    try {
-      await ChatService.markMessagesAsRead(chatRoomId, false);
-    } catch (e) {
-      print('❌ Error marking messages as read: $e');
-    }
-    
-    print('✅ Chat marked as read and badge cleared');
-  }
-
-  // Clear all unread messages for current user
-  static Future<void> clearAllUnreadMessages(String userId) async {
-    print('🧹 Clearing all unread messages for user: $userId');
-    
-    try {
-      // Clear the problematic room that's causing the red dot
-      await ChatService.markMessagesAsRead('qUBZ3vW0ERjdDA9i9p3Y', false);
-      
-      print('✅ All unread messages cleared');
-    } catch (e) {
-      print('❌ Error clearing all unread messages: $e');
-    }
-  }
-
-  // Update FCM token in user profile
+  
+  // อัปเดต FCM token ใน Firestore
   static Future<void> updateUserFCMToken(String userId) async {
     if (_fcmToken != null) {
       try {
-        // TODO: Update user's FCM token in Firestore
-        print('📝 Would update FCM token for user $userId: $_fcmToken');
+        await _firestore.collection('users').doc(userId).update({
+          'fcmToken': _fcmToken,
+          'fcmTokenUpdatedAt': FieldValue.serverTimestamp(),
+        });
+        print('✅ FCM token updated for user $userId');
       } catch (e) {
         print('❌ Error updating FCM token: $e');
       }

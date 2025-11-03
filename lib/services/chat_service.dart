@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:io';
 import '../models/chat.dart';
 import 'notification_service.dart';
+import 'advanced_notification_service.dart';
 import 'cloudinary_service.dart';
 
 class ChatService {
@@ -135,12 +136,24 @@ class ChatService {
 
       await _chatRoomsRef.doc(chatRoomId).update(updateData);
 
-      // Send notification (in a real app, this would be handled by backend)
+      // ส่งการแจ้งเตือนแชท
       try {
-        await NotificationService.sendChatNotification(
-          toUserId: senderRole == 'customer' ? 'admin' : 'customer',
+        // ใช้ AdvancedNotificationService สำหรับการแจ้งเตือนใหม่
+        final targetUserId = senderRole == 'customer' ? 'admin' : senderId;
+        final messageText = type == ChatMessageType.image ? '📷 ส่งรูปภาพ' : message;
+        
+        await AdvancedNotificationService.sendChatNotification(
+          toUserId: targetUserId,
           fromUserName: senderName,
-          message: type == ChatMessageType.image ? '📷 ส่งรูปภาพ' : message,
+          message: messageText,
+          chatRoomId: chatRoomId,
+        );
+
+        // Fallback to legacy notification service
+        await NotificationService.sendChatNotification(
+          toUserId: targetUserId,
+          fromUserName: senderName,
+          message: messageText,
           chatRoomId: chatRoomId,
         );
       } catch (notificationError) {

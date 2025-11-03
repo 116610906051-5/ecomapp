@@ -152,14 +152,81 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     ),
                   ),
                   SizedBox(height: 8),
-                  Text(
-                    '฿${product.price.toStringAsFixed(0)}',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF6366F1),
+                  
+                  // Price Display - แสดงราคาแบบ Lazada
+                  if (product.isCurrentlyOnSale && product.originalPrice != null) ...[
+                    // Sale Badge
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Color(0xFFEF4444),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        'ON SALE ${product.discountText}',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
-                  ),
+                    SizedBox(height: 12),
+                    
+                    // Original Price (crossed out)
+                    Text(
+                      '฿${product.displayOriginalPrice.toStringAsFixed(0)}',
+                      style: TextStyle(
+                        fontSize: 18,
+                        color: Colors.grey[500],
+                        decoration: TextDecoration.lineThrough,
+                        decorationColor: Colors.grey[500],
+                        decorationThickness: 2,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    
+                    // Sale Price
+                    Row(
+                      children: [
+                        Text(
+                          '฿${product.displayPrice.toStringAsFixed(0)}',
+                          style: TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFFEF4444),
+                          ),
+                        ),
+                        SizedBox(width: 12),
+                        Container(
+                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Color(0xFFEF4444),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            'SAVE ฿${(product.displayOriginalPrice - product.displayPrice).toStringAsFixed(0)}',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ] else ...[
+                    // Regular Price
+                    Text(
+                      '฿${product.displayPrice.toStringAsFixed(0)}',
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF6366F1),
+                      ),
+                    ),
+                  ],
+                  
                   SizedBox(height: 16),
                   
                   // Rating
@@ -435,7 +502,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                         ),
                       ),
                       child: Text(
-                        'Add to Cart - ฿${(product.price * quantity).toStringAsFixed(0)}',
+                        'Add to Cart - ฿${(product.displayPrice * quantity).toStringAsFixed(0)}',
                         style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                       ),
                     ),

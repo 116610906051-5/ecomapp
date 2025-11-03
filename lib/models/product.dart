@@ -14,6 +14,13 @@ class Product {
   final int stockQuantity;
   final DateTime createdAt;
   final DateTime updatedAt;
+  
+  // Fields for Special Offers
+  final bool isOnSale;
+  final double? originalPrice;
+  final double? discountPercentage;
+  final DateTime? saleStartDate;
+  final DateTime? saleEndDate;
 
   Product({
     required this.id,
@@ -31,6 +38,13 @@ class Product {
     this.stockQuantity = 0,
     required this.createdAt,
     required this.updatedAt,
+    
+    // Special Offers fields
+    this.isOnSale = false,
+    this.originalPrice,
+    this.discountPercentage,
+    this.saleStartDate,
+    this.saleEndDate,
   });
 
   factory Product.fromMap(Map<String, dynamic> map) {
@@ -50,6 +64,17 @@ class Product {
       stockQuantity: map['stockQuantity'] ?? 0,
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['createdAt'] ?? 0),
       updatedAt: DateTime.fromMillisecondsSinceEpoch(map['updatedAt'] ?? 0),
+      
+      // Special Offers fields
+      isOnSale: map['isOnSale'] ?? false,
+      originalPrice: map['originalPrice']?.toDouble(),
+      discountPercentage: map['discountPercentage']?.toDouble(),
+      saleStartDate: map['saleStartDate'] != null 
+        ? DateTime.fromMillisecondsSinceEpoch(map['saleStartDate'])
+        : null,
+      saleEndDate: map['saleEndDate'] != null
+        ? DateTime.fromMillisecondsSinceEpoch(map['saleEndDate'])
+        : null,
     );
   }
 
@@ -70,6 +95,50 @@ class Product {
       'stockQuantity': stockQuantity,
       'createdAt': createdAt.millisecondsSinceEpoch,
       'updatedAt': updatedAt.millisecondsSinceEpoch,
+      
+      // Special Offers fields
+      'isOnSale': isOnSale,
+      'originalPrice': originalPrice,
+      'discountPercentage': discountPercentage,
+      'saleStartDate': saleStartDate?.millisecondsSinceEpoch,
+      'saleEndDate': saleEndDate?.millisecondsSinceEpoch,
     };
+  }
+  
+  // Helper methods for Special Offers
+  bool get isCurrentlyOnSale {
+    if (!isOnSale) return false;
+    
+    final now = DateTime.now();
+    
+    // Check if sale period is active
+    if (saleStartDate != null && now.isBefore(saleStartDate!)) {
+      return false;
+    }
+    
+    if (saleEndDate != null && now.isAfter(saleEndDate!)) {
+      return false;
+    }
+    
+    return true;
+  }
+  
+  double get currentPrice {
+    return isCurrentlyOnSale ? price : (originalPrice ?? price);
+  }
+  
+  double get displayPrice {
+    return price;
+  }
+  
+  double get displayOriginalPrice {
+    return originalPrice ?? price;
+  }
+  
+  String get discountText {
+    if (!isCurrentlyOnSale || discountPercentage == null) {
+      return '';
+    }
+    return '-${discountPercentage!.toInt()}%';
   }
 }

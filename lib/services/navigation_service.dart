@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'notification_service.dart';
 
 class NavigationService {
   static GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -11,7 +10,8 @@ class NavigationService {
       final context = navigatorKey.currentContext;
       if (context != null) {
         // Clear notification badge when navigating to chat
-        await NotificationService.markChatAsRead(chatRoomId);
+        // TODO: Implement markChatAsRead in AdvancedNotificationService
+        // await AdvancedNotificationService().markChatAsRead(chatRoomId);
         
         // Navigate to live chat page with the specific chat room ID
         await Navigator.of(context).pushNamed(

@@ -170,7 +170,10 @@ class _HomePageState extends State<HomePage> {
                           style: Theme.of(context).textTheme.headlineMedium,
                         ),
                         TextButton(
-                          onPressed: () {},
+                          onPressed: () {
+                            // Navigate to products page to show all categories
+                            Navigator.pushNamed(context, '/products');
+                          },
                           child: Text(
                             'See All',
                             style: TextStyle(
@@ -325,7 +328,9 @@ class _HomePageState extends State<HomePage> {
                           ),
                           SizedBox(height: 16),
                           ElevatedButton(
-                            onPressed: () {},
+                            onPressed: () {
+                              Navigator.pushNamed(context, '/special-offers');
+                            },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.white,
                               foregroundColor: Color(0xFF1E293B),
@@ -447,21 +452,23 @@ class _HomePageState extends State<HomePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Product Image
-            Container(
-              height: 140,
-              decoration: BoxDecoration(
-                color: Color(0xFFF1F5F9),
-                borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-                child: imageUrl.isNotEmpty 
-                  ? Image.network(
-                      imageUrl,
-                      width: double.infinity,
-                      height: 140,
-                      fit: BoxFit.cover,
+            // Product Image with Sale Badge
+            Stack(
+              children: [
+                Container(
+                  height: 140,
+                  decoration: BoxDecoration(
+                    color: Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                    child: imageUrl.isNotEmpty 
+                      ? Image.network(
+                          imageUrl,
+                          width: double.infinity,
+                          height: 140,
+                          fit: BoxFit.cover,
                       loadingBuilder: (context, child, loadingProgress) {
                         if (loadingProgress == null) return child;
                         return Center(
@@ -470,24 +477,55 @@ class _HomePageState extends State<HomePage> {
                           ),
                         );
                       },
-                      errorBuilder: (context, error, stackTrace) {
-                        return Center(
+                          errorBuilder: (context, error, stackTrace) {
+                            return Center(
+                              child: Icon(
+                                Icons.image_not_supported,
+                                size: 60,
+                                color: Color(0xFF94A3B8),
+                              ),
+                            );
+                          },
+                        )
+                      : Center(
                           child: Icon(
-                            Icons.image_not_supported,
+                            Icons.image,
                             size: 60,
                             color: Color(0xFF94A3B8),
                           ),
-                        );
-                      },
-                    )
-                  : Center(
-                      child: Icon(
-                        Icons.image,
-                        size: 60,
-                        color: Color(0xFF94A3B8),
+                        ),
+                  ),
+                ),
+                
+                // Sale Badge
+                if (product != null && product.isCurrentlyOnSale && product.discountText.isNotEmpty)
+                  Positioned(
+                    top: 8,
+                    left: 8,
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Color(0xFFEF4444),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.red.withOpacity(0.3),
+                            blurRadius: 4,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Text(
+                        product.discountText,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-              ),
+                  ),
+              ],
             ),
             Padding(
               padding: EdgeInsets.all(12),
@@ -522,12 +560,66 @@ class _HomePageState extends State<HomePage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        price,
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF6366F1),
+                      // Price Display - แสดงราคาแบบ Lazada
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (product != null && product.isCurrentlyOnSale && product.originalPrice != null) ...[
+                              // Original Price (crossed out)
+                              Text(
+                                '฿${product.displayOriginalPrice.toStringAsFixed(0)}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[500],
+                                  decoration: TextDecoration.lineThrough,
+                                  decorationColor: Colors.grey[500],
+                                  decorationThickness: 2,
+                                ),
+                              ),
+                              // Current Price (discounted)
+                              Row(
+                                children: [
+                                  Text(
+                                    '฿${product.displayPrice.toStringAsFixed(0)}',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFFEF4444),
+                                    ),
+                                  ),
+                                  if (product.discountPercentage != null) ...[
+                                    SizedBox(width: 6),
+                                    Container(
+                                      padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Color(0xFFEF4444),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        '-${product.discountPercentage!.toInt()}%',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ] else ...[
+                              // Regular Price
+                              Text(
+                                price,
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF6366F1),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ),
                       Container(

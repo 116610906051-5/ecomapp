@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'services/advanced_notification_service.dart';
+import 'services/order_notification_service.dart';
 
 class DebugLoginPage extends StatefulWidget {
   const DebugLoginPage({super.key});
@@ -154,6 +156,104 @@ class _DebugLoginPageState extends State<DebugLoginPage> {
       });
     }
   }
+
+  Future<void> _testNotifications() async {
+    try {
+      setState(() {
+        _message = 'กำลังทดสอบระบบการแจ้งเตือน...';
+      });
+
+      // ทดสอบการแจ้งเตือนพื้นฐาน
+      await AdvancedNotificationService.sendTestNotification();
+      
+      setState(() {
+        _message = '✅ ทดสอบการแจ้งเตือนสำเร็จ!\nตรวจสอบแถบการแจ้งเตือนของระบบ';
+      });
+    } catch (e) {
+      setState(() {
+        _message = '❌ เกิดข้อผิดพลาดในการทดสอบ: $e';
+      });
+    }
+  }
+
+  Future<void> _testChatNotification() async {
+    try {
+      setState(() {
+        _message = 'กำลังทดสอบการแจ้งเตือนแชท...';
+      });
+
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        setState(() {
+          _message = 'กรุณาล็อกอินก่อนทดสอบ';
+        });
+        return;
+      }
+
+      await AdvancedNotificationService.sendChatNotification(
+        toUserId: user.uid,
+        fromUserName: 'ระบบทดสอบ',
+        message: 'สวัสดีครับ! นี่คือการทดสอบการแจ้งเตือนแชท 💬',
+        chatRoomId: 'test_chat_${DateTime.now().millisecondsSinceEpoch}',
+        fromUserImage: null,
+      );
+      
+      setState(() {
+        _message = '✅ ทดสอบการแจ้งเตือนแชทสำเร็จ!\nคุณควรเห็นการแจ้งเตือนแชทในระบบ';
+      });
+    } catch (e) {
+      setState(() {
+        _message = '❌ เกิดข้อผิดพลาดในการทดสอบแชท: $e';
+      });
+    }
+  }
+
+  Future<void> _testOrderNotification() async {
+    try {
+      setState(() {
+        _message = 'กำลังทดสอบการแจ้งเตือนคำสั่งซื้อ...';
+      });
+
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        setState(() {
+          _message = 'กรุณาล็อกอินก่อนทดสอบ';
+        });
+        return;
+      }
+
+      // ทดสอบการแจ้งเตือนสถานะคำสั่งซื้อ
+      await AdvancedNotificationService.sendOrderStatusNotification(
+        toUserId: user.uid,
+        orderId: 'TEST_ORDER_${DateTime.now().millisecondsSinceEpoch}',
+        status: 'shipped',
+        productName: 'สินค้าทดสอบ - iPhone 15 Pro Max',
+        productImage: null,
+      );
+
+      // ทดสอบการแจ้งเตือนคำสั่งซื้อใหม่ (สำหรับ admin)
+      await OrderNotificationService.notifyNewOrder(
+        orderId: 'NEW_ORDER_${DateTime.now().millisecondsSinceEpoch}',
+        customerName: 'ลูกค้าทดสอบ',
+        productName: 'MacBook Pro M3',
+        totalAmount: 89900.00,
+      );
+      
+      setState(() {
+        _message = '''✅ ทดสอบการแจ้งเตือนคำสั่งซื้อสำเร็จ!
+
+ทดสอบ:
+- การแจ้งเตือนสถานะสินค้า (สำหรับลูกค้า)
+- การแจ้งเตือนคำสั่งซื้อใหม่ (สำหรับแอดมิน)
+
+ตรวจสอบการแจ้งเตือนในระบบ''';
+      });
+    } catch (e) {
+      setState(() {
+        _message = '❌ เกิดข้อผิดพลาดในการทดสอบคำสั่งซื้อ: $e';
+      });
+    }
+  }
   
   @override
   Widget build(BuildContext context) {
@@ -212,6 +312,33 @@ class _DebugLoginPageState extends State<DebugLoginPage> {
             ElevatedButton(
               onPressed: _checkUserRole,
               child: const Text('Check User Role'),
+            ),
+            const SizedBox(height: 10),
+            ElevatedButton(
+              onPressed: _testNotifications,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Test Notifications'),
+            ),
+            const SizedBox(height: 10),
+            ElevatedButton(
+              onPressed: _testChatNotification,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Test Chat Notification'),
+            ),
+            const SizedBox(height: 10),
+            ElevatedButton(
+              onPressed: _testOrderNotification,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Test Order Notification'),
             ),
             const SizedBox(height: 20),
             Container(

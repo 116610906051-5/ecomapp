@@ -48,6 +48,9 @@ dependencies:
   
   # Image picker for chat and products
   image_picker: ^1.0.7
+  
+  # Shared preferences for settings
+  shared_preferences: ^2.2.2
   file_picker: ^8.0.0+1
   path: ^1.9.0
   
@@ -64,6 +67,7 @@ dependencies:
   # Push notifications
   firebase_messaging: ^14.7.10
   permission_handler: ^11.2.0
+  flutter_local_notifications: ^17.2.3
 
 dev_dependencies:
   flutter_test:
