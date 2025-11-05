@@ -184,7 +184,7 @@ lib/
 ## 📞 ติดต่อ
 
 หากมีคำถามหรือต้องการความช่วยเหลือ กรุณาติดต่อ:
-- Email: support@example.com
+- Email: pangp1811@gmail.com
 - GitHub Issues: [Create Issue](https://github.com/your-repo/issues)
 
 ---
