@@ -15,7 +15,7 @@
     <uses-permission android:name="android.permission.CAMERA" />
     
     <application
-        android:label="flutter_application_1"
+        android:label="My E-Commerce App"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         

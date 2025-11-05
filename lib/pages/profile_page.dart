@@ -5,7 +5,6 @@ import 'dart:io';
 import '../providers/auth_provider.dart';
 import '../providers/notification_settings_provider.dart';
 import '../services/cloudinary_service.dart';
-import '../services/advanced_notification_service.dart';
 import '../widgets/notification_badge.dart';
 
 class ProfilePage extends StatefulWidget {
